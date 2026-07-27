@@ -362,13 +362,31 @@ export function initRouter() {
   _currentView = pathToView(p);
   window.addEventListener('popstate', () => {
     let p = window.location.pathname.replace(/\/+$/, '') || '/';
-    _currentView = pathToView(p);
+    const newView = pathToView(p);
+    if (!_isLoggedIn && newView !== 'login') {
+      history.replaceState({}, '', '/login');
+      _currentView = 'login';
+    } else if (_isLoggedIn && newView === 'login') {
+      history.replaceState({}, '', '/dashboard');
+      _currentView = 'dashboard';
+    } else {
+      _currentView = newView;
+    }
   });
 }
 
 export function navigate(path: string) {
-  history.pushState({}, '', path);
-  _currentView = pathToView(path);
+  const target = pathToView(path);
+  if (!_isLoggedIn && target !== 'login') {
+    history.pushState({}, '', '/login');
+    _currentView = 'login';
+  } else if (_isLoggedIn && target === 'login') {
+    history.pushState({}, '', '/dashboard');
+    _currentView = 'dashboard';
+  } else {
+    history.pushState({}, '', path);
+    _currentView = target;
+  }
 }
 
 export function getCurrentView() {

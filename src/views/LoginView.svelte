@@ -1,5 +1,6 @@
 <script lang="ts">
   import { login, register, showApp } from '../lib/api.js';
+  import { navigate } from '../lib/state.svelte.js';
 
   let tab = $state('login');
   let email = $state('');
@@ -18,6 +19,7 @@
     try {
       const data = tab === 'login' ? await login(email, password) : await register(email, password);
       await showApp(data.user.email, data.user.id);
+      navigate('/dashboard');
     } catch (err) {
       error = err.message;
     } finally {
