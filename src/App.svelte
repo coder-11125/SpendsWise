@@ -6,7 +6,7 @@
   import Sidebar from './components/Sidebar.svelte';
   import Header from './components/Header.svelte';
   import Dashboard from './views/Dashboard.svelte';
-  import AuthModal from './components/AuthModal.svelte';
+  import LoginView from './views/LoginView.svelte';
   import ConfirmModal from './components/ConfirmModal.svelte';
 
   let sidebarOpen = $state(false);
@@ -33,14 +33,14 @@
   let DeleteAllModal = $state(null);
   let MobileQuickAdd = $state(null);
 
-  $effect(() => {
-    if (view === 'income' && !IncomeView) import('./views/IncomeView.svelte').then(m => IncomeView = m.default);
-    else if (view === 'expense' && !ExpenseView) import('./views/ExpenseView.svelte').then(m => ExpenseView = m.default);
-    else if (view === 'account' && !AccountView) import('./views/AccountView.svelte').then(m => AccountView = m.default);
-    else if (view === 'summaries' && !SummariesView) import('./views/SummariesView.svelte').then(m => SummariesView = m.default);
-    else if (view === 'spaces' && !SpacesView) import('./views/SpacesView.svelte').then(m => SpacesView = m.default);
-    else if (view === 'ai' && !AiChatPanel) import('./components/AiChatPanel.svelte').then(m => AiChatPanel = m.default);
-  });
+  // Preload ExpenseView immediately since it's the heaviest view.
+  import('./views/ExpenseView.svelte').then(m => ExpenseView = m.default);
+
+  $effect(() => { if (view === 'income' && !IncomeView) import('./views/IncomeView.svelte').then(m => IncomeView = m.default); });
+  $effect(() => { if (view === 'account' && !AccountView) import('./views/AccountView.svelte').then(m => AccountView = m.default); });
+  $effect(() => { if (view === 'summaries' && !SummariesView) import('./views/SummariesView.svelte').then(m => SummariesView = m.default); });
+  $effect(() => { if (view === 'spaces' && !SpacesView) import('./views/SpacesView.svelte').then(m => SpacesView = m.default); });
+  $effect(() => { if (view === 'ai' && !AiChatPanel) import('./components/AiChatPanel.svelte').then(m => AiChatPanel = m.default); });
 
   $effect(() => { if (editingItem && !EditModal) import('./components/EditModal.svelte').then(m => EditModal = m.default); });
   $effect(() => { if (showCurrencyModal && !CurrencyModal) import('./components/CurrencyModal.svelte').then(m => CurrencyModal = m.default); });
@@ -83,12 +83,23 @@
   });
 
   let view = $derived(getCurrentView());
+
+  $effect(() => {
+    if (getAuthChecking()) return;
+    if (!getIsLoggedIn() && view !== 'login') {
+      navigate('/login');
+    } else if (getIsLoggedIn() && view === 'login') {
+      navigate('/dashboard');
+    }
+  });
 </script>
 
 {#if getAuthChecking()}
-  <div class="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+  <div class="h-screen flex items-center justify-center bg-white">
     <i class="ph ph-circle-notch animate-spin text-3xl text-blue-500"></i>
   </div>
+{:else if view === 'login'}
+  <LoginView />
 {:else}
 <div class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900">
   {#if sidebarOpen}
@@ -109,31 +120,32 @@
     {/if}
 
     <main class="flex-1 min-h-0 {view === 'ai' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto overflow-x-hidden custom-scrollbar p-4 lg:p-6'}">
-      {#if view === 'dashboard'}
-        <Dashboard />
-      {:else if view === 'income' && IncomeView}
-        <IncomeView />
-      {:else if view === 'expense' && ExpenseView}
-        <ExpenseView />
-      {:else if view === 'account' && AccountView}
-        <AccountView />
-      {:else if view === 'summaries' && SummariesView}
-        <SummariesView />
-      {:else if view === 'spaces' && SpacesView}
-        <SpacesView />
-      {:else if view === 'ai' && AiChatPanel}
-        <AiChatPanel embedded ontogglemenu={() => sidebarOpen = !sidebarOpen} />
-      {:else}
-        <div class="h-full flex items-center justify-center">
-          <i class="ph ph-circle-notch animate-spin text-3xl text-blue-500"></i>
-        </div>
-      {/if}
+      {#key view}
+        {#if view === 'dashboard'}
+          <Dashboard />
+        {:else if view === 'income' && IncomeView}
+          <IncomeView />
+        {:else if view === 'expense' && ExpenseView}
+          <ExpenseView />
+        {:else if view === 'account' && AccountView}
+          <AccountView />
+        {:else if view === 'summaries' && SummariesView}
+          <SummariesView />
+        {:else if view === 'spaces' && SpacesView}
+          <SpacesView />
+        {:else if view === 'ai' && AiChatPanel}
+          <AiChatPanel embedded ontogglemenu={() => sidebarOpen = !sidebarOpen} />
+        {:else}
+          <div class="h-full flex items-center justify-center">
+            <i class="ph ph-circle-notch animate-spin text-3xl text-blue-500"></i>
+          </div>
+        {/if}
+      {/key}
     </main>
   </div>
 </div>
 {/if}
 
-<AuthModal />
 <ConfirmModal />
 
 {#if editingItem && EditModal}

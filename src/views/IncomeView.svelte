@@ -21,7 +21,9 @@
     const currency = getCurrentCurrency();
     incomeItems = expense.filter(i => i.type === 'income');
     summary = await calculateIncomeSummary(expense, currency);
+    if (cancelled) return;
     const m = await calculateMemberBreakdown(incomeItems, currency);
+    if (cancelled) return;
     memberData = m.data;
     memberTotal = m.total;
     applyFilters();
@@ -55,10 +57,14 @@
     displayedItems = items;
   }
 
+  let cancelled = $state(false);
+
   $effect(() => {
+    cancelled = false;
     getExpense();
     getCurrentCurrency();
     refresh();
+    return () => { cancelled = true; };
   });
 
   $effect(() => {

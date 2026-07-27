@@ -12,6 +12,7 @@ import {
   getRateLimitHitTime, setRateLimitHitTime,
   getRateFetchAttempts,
   setRatesAreLive,
+  navigate,
 } from './state.svelte.js';
 import type { Expense, Profile, WeeklySummary, Space } from '../types.js';
 
@@ -161,6 +162,7 @@ export async function logout(): Promise<void> {
     });
   } catch {}
   sessionStorage.setItem('sw_logged_out', 'true');
+  navigate('/login');
 }
 
 export async function checkSession(): Promise<boolean> {

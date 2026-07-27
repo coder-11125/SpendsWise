@@ -37,6 +37,7 @@
       calculateExpenseTrendData(expense, trendRange, currency),
       calculateMemberBreakdown(expenseItems, currency)
     ]);
+    if (cancelled) return;
     summary = s;
     categoryData = c.data;
     categoryTotal = c.total;
@@ -77,11 +78,15 @@
     displayedItems = items;
   }
 
+  let cancelled = $state(false);
+
   $effect(() => {
+    cancelled = false;
     getExpense();
     getCurrentCurrency();
     trendRange;
     refresh();
+    return () => { cancelled = true; };
   });
 
   $effect(() => {

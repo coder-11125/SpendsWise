@@ -34,6 +34,7 @@
       calculateExpenseTrendData(expense, trendRange, currency),
       calculateMemberBreakdown(expense, currency)
     ]);
+    if (cancelled) return;
     summary = s;
     categoryData = c.data;
     categoryTotal = c.total;
@@ -46,11 +47,15 @@
     memberTotal = m.total;
   }
 
+  let cancelled = $state(false);
+
   $effect(() => {
+    cancelled = false;
     getExpense();
     getCurrentCurrency();
     trendRange;
     refresh();
+    return () => { cancelled = true; };
   });
 
   function handleTrendChange(r) {
