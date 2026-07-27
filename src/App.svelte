@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { fetchCsrfToken, checkSession } from './lib/api.js';
   import { getIsLoggedIn, getAuthChecking, setAuthChecking, getCurrentCurrency, initRouter, getCurrentView, navigate } from './lib/state.svelte.js';
   import { getCurrencySymbol } from './lib/currency.js';
@@ -87,9 +87,9 @@
   $effect(() => {
     if (getAuthChecking()) return;
     if (!getIsLoggedIn() && view !== 'login') {
-      navigate('/login');
+      untrack(() => navigate('/login'));
     } else if (getIsLoggedIn() && view === 'login') {
-      navigate('/dashboard');
+      untrack(() => navigate('/dashboard'));
     }
   });
 </script>
