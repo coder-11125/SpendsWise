@@ -4,6 +4,7 @@
   import { getIsLoggedIn, getAuthChecking, setAuthChecking, getCurrentCurrency, initRouter, getCurrentView, navigate } from './lib/state.svelte.js';
   import { getCurrencySymbol } from './lib/currency.js';
   import Sidebar from './components/Sidebar.svelte';
+  import BottomNav from './components/BottomNav.svelte';
   import Header from './components/Header.svelte';
   import Dashboard from './views/Dashboard.svelte';
   import LoginView from './views/LoginView.svelte';
@@ -115,7 +116,7 @@
       />
     {/if}
 
-    <main class="flex-1 min-h-0 {view === 'ai' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto overflow-x-hidden custom-scrollbar p-4 lg:p-6'}">
+    <main class="flex-1 min-h-0 {view === 'ai' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto overflow-x-hidden custom-scrollbar p-4 lg:p-6 pb-20 lg:pb-6'}">
       {#if view === 'dashboard'}
         <Dashboard />
       {:else if view === 'income' && IncomeView}
@@ -138,6 +139,10 @@
     </main>
   </div>
 </div>
+
+{#if view !== 'login' && view !== 'ai'}
+  <BottomNav activeFilter={view} />
+{/if}
 {/if}
 
 <ConfirmModal />
@@ -178,17 +183,8 @@
 <button
   onclick={() => showMobileQuickAdd = true}
   id="mobileQuickAddBtn"
-  class="fixed bottom-6 left-6 z-40 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl transition-all hover:scale-105 active:scale-95 md:hidden cursor-pointer"
+  class="fixed bottom-20 left-6 z-40 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl transition-all hover:scale-105 active:scale-95 md:hidden cursor-pointer"
   aria-label="Quick add"
 >
   <i class="ph ph-plus text-2xl"></i>
-</button>
-
-<!-- AI Chat FAB -->
-<button
-  onclick={() => showAiChat = true}
-  class="fixed bottom-6 right-6 z-40 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer lg:hidden"
-  aria-label="Open AI chat"
->
-  <i class="ph-fill ph-chat-circle-dots text-2xl"></i>
 </button>
