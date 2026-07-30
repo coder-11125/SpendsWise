@@ -16,6 +16,6 @@
     "allowImportingTsExtensions": true,
     "types": ["svelte", "vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "server/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"],
+  "exclude": ["node_modules", "server"]
 }
