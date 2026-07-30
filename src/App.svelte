@@ -10,7 +10,6 @@
   import LoginView from './views/LoginView.svelte';
   import ConfirmModal from './components/ConfirmModal.svelte';
 
-  let sidebarOpen = $state(false);
   let sidebarCollapsed = $state(typeof localStorage !== 'undefined' && localStorage.getItem('sw_sidebar_collapsed') === 'true');
   let editingItem = $state(null);
   let showCurrencyModal = $state(false);
@@ -52,7 +51,6 @@
 
   function handleNavigate(filter) {
     navigate('/' + filter);
-    sidebarOpen = false;
   }
 
   function toggleSidebarCollapsed() {
@@ -99,18 +97,14 @@
   <LoginView />
 {:else}
 <div class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900">
-  {#if sidebarOpen}
-    <div role="presentation" onclick={() => sidebarOpen = false} class="fixed inset-0 bg-black/50 z-40 lg:hidden"></div>
-  {/if}
 
-  <div class="fixed lg:static inset-y-0 left-0 z-50 w-64 {sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'} flex-shrink-0 transform transition-all duration-300 lg:translate-x-0 {sidebarOpen ? 'translate-x-0' : '-translate-x-full invisible lg:visible'}">
+  <div class="fixed lg:static inset-y-0 left-0 z-50 w-64 {sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'} flex-shrink-0 transform transition-all duration-300 lg:translate-x-0 -translate-x-full lg:translate-x-0 invisible lg:visible">
     <Sidebar activeFilter={view} onnavigate={handleNavigate} collapsed={sidebarCollapsed} oncollapsetoggle={toggleSidebarCollapsed} />
   </div>
 
   <div class="flex-1 flex flex-col min-w-0 h-full relative z-0">
     {#if view !== 'ai'}
       <Header
-        ontogglemenu={() => sidebarOpen = !sidebarOpen}
         onopencurrency={() => showCurrencyModal = true}
         view={view}
       />
@@ -130,7 +124,7 @@
       {:else if view === 'spaces' && SpacesView}
         <SpacesView />
       {:else if view === 'ai' && AiChatPanel}
-        <AiChatPanel embedded ontogglemenu={() => sidebarOpen = !sidebarOpen} />
+        <AiChatPanel embedded />
       {:else}
         <div class="h-full flex items-center justify-center">
           <i class="ph ph-circle-notch animate-spin text-3xl text-blue-500"></i>
