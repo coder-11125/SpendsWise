@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { getExpense, getCurrentCurrency, removeExpenseItem, getCurrentSpaceId, confirmDialog } from '../lib/state.svelte.js';
   import { calculateIncomeSummary, calculateMemberBreakdown } from '../lib/calculations.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
@@ -63,7 +64,7 @@
     cancelled = false;
     getExpense();
     getCurrentCurrency();
-    refresh();
+    untrack(() => refresh());
     return () => { cancelled = true; };
   });
 

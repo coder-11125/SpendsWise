@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { getExpense, getCurrentCurrency, removeExpenseItem, getExpenseTrendRange, setExpenseTrendRange, getCurrentSpaceId, confirmDialog } from '../lib/state.svelte.js';
   import { calculateExpenseSummary, calculateExpenseByCategory, calculateMemberBreakdown } from '../lib/calculations.svelte.js';
   import { calculateExpenseTrendData } from '../lib/utils.js';
@@ -85,7 +86,7 @@
     getExpense();
     getCurrentCurrency();
     trendRange;
-    refresh();
+    untrack(() => refresh());
     return () => { cancelled = true; };
   });
 

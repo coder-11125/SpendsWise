@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { getBudgetGoals, getExpense, getCurrentCurrency } from '../lib/state.svelte.js';
   import { getCurrentMonthExpenseByCategory } from '../lib/calculations.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
@@ -10,8 +11,10 @@
   let symbol = $derived(getCurrencySymbol(currency));
 
   $effect(() => {
-    getCurrentMonthExpenseByCategory(expense, currency).then(result => {
-      monthlySpend = result;
+    untrack(() => {
+      getCurrentMonthExpenseByCategory(expense, currency).then(result => {
+        monthlySpend = result;
+      });
     });
   });
 
