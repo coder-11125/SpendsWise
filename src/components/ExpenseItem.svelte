@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { categoryIcons } from '../lib/constants.js';
   import { getCurrentCurrency } from '../lib/state.svelte.js';
   import { formatDate } from '../lib/utils.js';
@@ -11,9 +12,11 @@
 
   $effect(() => {
     if (item) {
-      convertToDisplayCurrency(item.amount, item.currency, getCurrentCurrency()).then(r => {
-        convertedAmount = r.amount;
-        convertedCurrency = r.currency;
+      untrack(() => {
+        convertToDisplayCurrency(item.amount, item.currency, getCurrentCurrency()).then(r => {
+          convertedAmount = r.amount;
+          convertedCurrency = r.currency;
+        });
       });
     }
   });

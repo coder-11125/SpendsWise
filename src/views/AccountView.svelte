@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { getExpense, getCurrentCurrency, setExpense, getBudgetGoals, setBudgetGoals, getCustomCategories, removeCustomCategory, getHiddenCategories, hideCategory, unhideCategory, getCurrentSpaceId, getSpaces, getUserId, confirmDialog } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
   import { changePassword, deleteAllExpenses, getProfile, uploadBulkExpenses, loadExpenses, deleteSpace } from '../lib/api.js';
@@ -41,7 +42,7 @@
   $effect(() => {
     getExpense();
     getCurrentCurrency();
-    refreshStats();
+    untrack(() => refreshStats());
   });
 
   $effect(() => {
