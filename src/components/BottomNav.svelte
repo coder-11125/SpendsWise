@@ -1,15 +1,21 @@
 <script lang="ts">
-  import { getIsLoggedIn, navigate } from '../lib/state.svelte.js';
+  import { navigate } from '../lib/state.svelte.js';
 
-  let { activeFilter = 'dashboard' } = $props();
-
-  let isLoggedIn = $derived(getIsLoggedIn());
+  let {
+    activeFilter = 'dashboard',
+    onquickadd,
+  }: {
+    activeFilter?: string;
+    onquickadd?: () => void;
+  } = $props();
 
   const navItems = [
     { filter: 'dashboard', icon: 'ph-chart-pie-slice', label: 'Dashboard' },
-    { filter: 'income', icon: 'ph-trend-up', label: 'Income' },
     { filter: 'expense', icon: 'ph-trend-down', label: 'Expense' },
-    { filter: 'ai', icon: 'ph-chat-circle-dots', label: 'AI' },
+  ];
+
+  const rightItems = [
+    { filter: 'income', icon: 'ph-trend-up', label: 'Income' },
     { filter: 'account', icon: 'ph-user', label: 'Account' },
   ];
 
@@ -18,16 +24,53 @@
   }
 </script>
 
-<nav class="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 safe-area-bottom lg:hidden">
-  {#each navItems as item}
+<nav class="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-center h-[72px] safe-area-bottom lg:hidden pointer-events-none">
+  <!-- Curved notch background -->
+  <div class="absolute inset-x-0 bottom-0 h-[60px] bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 rounded-t-[24px] shadow-[0_-2px_12px_rgba(0,0,0,0.06)] pointer-events-auto"></div>
+
+  <!-- Semi-circle cutout extension -->
+  <div
+    class="absolute left-1/2 -translate-x-1/2 top-0 w-[72px] h-[36px] bg-white dark:bg-slate-800 rounded-t-full border-t border-l border-r border-slate-200 dark:border-slate-700 pointer-events-auto"
+    style="box-shadow: 0 -2px 12px rgba(0,0,0,0.06); clip-path: inset(0 0 -12px 0)"
+  ></div>
+
+  <!-- Nav items -->
+  <div class="relative flex items-center justify-between w-full max-w-lg px-6 z-10 pointer-events-auto">
+    <!-- Left items -->
+    <div class="flex items-center justify-around flex-1">
+      {#each navItems as item}
+        <button
+          onclick={() => handleNav(item.filter)}
+          class="flex flex-col items-center gap-0.5 py-1.5 px-3 min-w-0 transition-colors cursor-pointer {activeFilter === item.filter ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}"
+        >
+          <i class="ph {item.icon} text-xl"></i>
+          <span class="text-[10px] font-medium leading-tight">{item.label}</span>
+        </button>
+      {/each}
+    </div>
+
+    <!-- Center Quick Add -->
     <button
-      onclick={() => handleNav(item.filter)}
-      class="flex flex-col items-center gap-0.5 py-2 px-3 min-w-0 transition-colors cursor-pointer {activeFilter === item.filter ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}"
+      onclick={() => onquickadd?.()}
+      class="relative -mt-8 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer flex-shrink-0"
+      aria-label="Quick add"
     >
-      <i class="ph {item.icon} text-xl"></i>
-      <span class="text-[10px] font-medium leading-tight truncate max-w-full">{item.label}</span>
+      <i class="ph ph-plus text-2xl"></i>
     </button>
-  {/each}
+
+    <!-- Right items -->
+    <div class="flex items-center justify-around flex-1">
+      {#each rightItems as item}
+        <button
+          onclick={() => handleNav(item.filter)}
+          class="flex flex-col items-center gap-0.5 py-1.5 px-3 min-w-0 transition-colors cursor-pointer {activeFilter === item.filter ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}"
+        >
+          <i class="ph {item.icon} text-xl"></i>
+          <span class="text-[10px] font-medium leading-tight">{item.label}</span>
+        </button>
+      {/each}
+    </div>
+  </div>
 </nav>
 
 <style>

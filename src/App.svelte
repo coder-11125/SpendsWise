@@ -141,7 +141,7 @@
 </div>
 
 {#if view !== 'login' && view !== 'ai'}
-  <BottomNav activeFilter={view} />
+  <BottomNav activeFilter={view} onquickadd={() => showMobileQuickAdd = true} />
 {/if}
 {/if}
 
@@ -179,12 +179,4 @@
   <AiChatPanel show={showAiChat} onclose={() => showAiChat = false} />
 {/if}
 
-<!-- Mobile Quick Add FAB -->
-<button
-  onclick={() => showMobileQuickAdd = true}
-  id="mobileQuickAddBtn"
-  class="fixed bottom-20 left-6 z-40 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl transition-all hover:scale-105 active:scale-95 md:hidden cursor-pointer"
-  aria-label="Quick add"
->
-  <i class="ph ph-plus text-2xl"></i>
-</button>
+<!-- The mobile Quick Add is triggered from the center of the bottom nav bar -->

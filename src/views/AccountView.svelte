@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { getExpense, getCurrentCurrency, setExpense, getBudgetGoals, setBudgetGoals, getCustomCategories, removeCustomCategory, getHiddenCategories, hideCategory, unhideCategory, getCurrentSpaceId, getSpaces, getUserId, confirmDialog } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
-  import { changePassword, deleteAllExpenses, getProfile, uploadBulkExpenses, loadExpenses, deleteSpace } from '../lib/api.js';
+  import { changePassword, deleteAllExpenses, getProfile, uploadBulkExpenses, loadExpenses, deleteSpace, logout } from '../lib/api.js';
   import { calculateSummary } from '../lib/calculations.svelte.js';
   import { defaultExpenseCategories, defaultIncomeCategories } from '../lib/constants.js';
 
@@ -198,6 +198,11 @@
     }
   }
 
+  async function handleLogout() {
+    if (!await confirmDialog('Are you sure you want to log out?')) return;
+    await logout();
+  }
+
   let ownedSpaces = $derived(getSpaces().filter(s => s.members.find(m => m.userId === getUserId())?.role === 'owner'));
   let goals = $derived(Object.entries(getBudgetGoals()));
   let customExpenseCategories = $derived(getCustomCategories('expense'));
@@ -311,6 +316,16 @@
         <p class="text-sm text-rose-600">{passwordError}</p>
       {/if}
     </div>
+  </div>
+
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+    <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Sign Out</h3>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Sign out of your account on this device.</p>
+    <button onclick={handleLogout}
+      class="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2">
+      <i class="ph ph-sign-out text-base"></i>
+      Logout
+    </button>
   </div>
 
   <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
