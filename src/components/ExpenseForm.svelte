@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import flatpickr from 'flatpickr';
-  import { saveTransaction, parseReceiptsBulk, switchSpace } from '../lib/api.js';
+  import { saveTransaction, parseReceiptsBulk, switchSpace, uploadBulkExpenses, loadExpenses } from '../lib/api.js';
   import { getAllCategories, getSpaces, getCurrentSpaceId } from '../lib/state.svelte.js';
   import { compressImageToDataUrl } from '../lib/utils.js';
   import BulkImportModal from './BulkImportModal.svelte';
@@ -167,6 +167,42 @@
     e.target.value = '';
   }
 
+  // CSV import handlers
+  function triggerCsvImport() {
+    csvFileInput?.click();
+  }
+
+  async function handleCsvFileSelect(ev: Event) {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    csvImporting = true;
+    csvResult = null;
+    try {
+      const text = await file.text();
+      const lines = text.trim().split('\n');
+      if (lines.length < 2) {
+        csvResult = { success: false, message: 'CSV file is empty or has no data rows.' };
+        return;
+      }
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const rows = lines.slice(1).filter(l => l.trim()).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const obj: Record<string, string> = {};
+        headers.forEach((h, i) => obj[h] = values[i] || '');
+        return obj;
+      });
+      const res = await uploadBulkExpenses(rows);
+      await loadExpenses();
+      csvResult = { success: true, message: `Successfully imported ${res.count || rows.length} item(s).` };
+    } catch (err: any) {
+      csvResult = { success: false, message: err.message || 'Failed to import CSV.' };
+    } finally {
+      csvImporting = false;
+      input.value = '';
+    }
+  }
+
   function handleBulkSave(saved: any[]) {
     showBulkModal = false;
     parsedReceipts = [];
@@ -174,6 +210,11 @@
       onadd?.(item);
     }
   }
+
+  // CSV import
+  let csvImporting = $state(false);
+  let csvResult = $state<{ success: boolean; message: string } | null>(null);
+  let csvFileInput: HTMLInputElement;
 
   let receiptInput;
 
@@ -320,6 +361,36 @@
         <div class="flex items-center gap-2 text-sm text-slate-500 mt-2">
           <i class="ph ph-circle-notch animate-spin"></i>
           <span>{receiptProgress}</span>
+        </div>
+      {/if}
+    </div>
+
+    <!-- CSV Import -->
+    <div class="mt-4">
+      <button onclick={triggerCsvImport} disabled={csvImporting} class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer disabled:text-slate-300">
+        <i class="ph ph-file-csv"></i>
+        <span>{csvImporting ? 'Importing...' : 'Import CSV'}</span>
+      </button>
+      <input bind:this={csvFileInput} type="file" accept=".csv" class="hidden" onchange={handleCsvFileSelect} />
+      {#if csvImporting}
+        <div class="flex items-center gap-2 text-sm text-slate-500 mt-2">
+          <i class="ph ph-circle-notch animate-spin"></i>
+          <span>Importing CSV...</span>
+        </div>
+      {/if}
+      {#if csvResult}
+        <div class="mt-2 px-3 py-2 rounded-lg text-sm {csvResult.success ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300'}">
+          {#if csvResult.success}
+            <i class="ph ph-check-circle mr-1"></i>
+          {:else}
+            <i class="ph ph-x-circle mr-1"></i>
+          {/if}
+          {csvResult.message}
+          {#if csvResult.success}
+            <button onclick={() => csvResult = null} class="ml-2 text-blue-600 hover:underline">OK</button>
+          {:else}
+            <button onclick={() => csvResult = null} class="ml-2 text-blue-600 hover:underline">Dismiss</button>
+          {/if}
         </div>
       {/if}
     </div>
