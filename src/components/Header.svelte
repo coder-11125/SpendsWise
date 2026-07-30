@@ -43,7 +43,7 @@
   }
 </script>
 
-<header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 lg:px-6 h-16 flex items-center justify-center lg:justify-between sticky top-0 z-30">
+<header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 lg:px-6 h-16 flex items-center justify-center lg:justify-end sticky top-0 z-30">
 
   <div class="flex items-center gap-2">
     {#if isLoggedIn && view !== 'ai'}
