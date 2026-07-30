@@ -1,5 +1,7 @@
 # SpendsWise
 
+[![CI](https://github.com/coder11125/SpendsWise/actions/workflows/ci.yml/badge.svg)](https://github.com/coder11125/SpendsWise/actions/workflows/ci.yml)
+
 A personal finance tracker built with Svelte 5, TypeScript, Express, and MongoDB. Includes shared multi-user Spaces, an AI finance assistant powered by Groq, real-time sync via Pusher, recurring transactions, receipt OCR, weekly AI-narrated summaries, and multi-currency support. Deployed on Vercel.
 
 ## Features
