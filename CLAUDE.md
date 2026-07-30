@@ -55,21 +55,22 @@ src/
 ├── components/
 │   ├── AiChatPanel.svelte      # AI assistant slide-in panel (Groq-powered chat)
 │   ├── AuthModal.svelte        # Login/register modal
+│   ├── BottomNav.svelte        # Mobile bottom navigation bar with center + Quick Add button
 │   ├── BudgetOverview.svelte   # Per-category budget goal progress bars
 │   ├── BulkImportModal.svelte  # Receipt bulk import review/save modal
 │   ├── CurrencyModal.svelte    # Currency selector with live rates
 │   ├── DeleteAllModal.svelte   # Confirm delete-all-transactions
 │   ├── EditModal.svelte        # Edit expense modal (flatpickr + recurrence toggle)
-│   ├── ExpenseForm.svelte      # Add transaction form (flatpickr, Space selector, receipt OCR, recurrence)
+│   ├── ExpenseForm.svelte      # Add transaction form (flatpickr, Space selector, OCR, CSV import, recurrence)
 │   ├── ExpenseItem.svelte      # Single expense/income row (contributor pill, recurrence badge, currency conversion)
-│   ├── Header.svelte           # Top bar — Personal/Hub switcher, notifications, currency switcher
+│   ├── Header.svelte           # Top bar — Personal/Hub switcher, notifications, currency switcher (no hamburger)
 │   ├── ImportModal.svelte      # Import result feedback modal
 │   ├── LoadingSpinner.svelte   # Loading indicator
 │   ├── MemberBreakdown.svelte  # Per-Hub-member contribution chart (category-breakdown pattern)
-│   ├── MobileQuickAdd.svelte   # Quick-add FAB modal (mobile), incl. Space selector
+│   ├── MobileQuickAdd.svelte   # Quick-add modal (mobile), incl. Space selector, CSV import, OCR receipt import
 │   ├── PieChart.svelte         # Category pie chart
 │   ├── RecurringUpcoming.svelte # Dashboard card — active/paused recurring transactions
-│   ├── Sidebar.svelte          # Left navigation (Dashboard, Income, Expense, Spaces, Summaries, Account)
+│   ├── Sidebar.svelte          # Left navigation (desktop only) — Dashboard, Income, Expense, Spaces, Summaries, Account
 │   ├── SummaryCards.svelte     # Income/expense/balance summary cards
 │   ├── TopCategories.svelte    # Top expense categories list
 │   └── TrendChart.svelte       # Expense trend line chart
@@ -79,7 +80,7 @@ src/
     ├── ExpenseView.svelte      # Expense list with search/sort, pie chart, trend, member breakdown
     ├── SpacesView.svelte       # Manage Hubs — create, rename, delete, invite, rename/remove members
     ├── SummariesView.svelte    # Weekly AI-narrated summaries
-    └── AccountView.svelte      # Profile, stats, import/export, dark mode, password, budget goals, danger zone
+    └── AccountView.svelte      # Profile, stats, export CSV, dark mode, password, budget goals, logout, categories, danger zone
 ```
 
 ### Backend architecture
@@ -268,10 +269,24 @@ Transaction deletion only updates local state after the server confirms success.
 - **Weekly summaries**: Lazily-generated, cached, AI-narrated recap of income/expenses/net/top categories per week
 - **Budget goals**: Per-category spending targets with progress tracking
 - **Multi-currency**: Live exchange rates, per-transaction currency, unified display currency
-- **Import/Export**: CSV import (with AI bulk receipt import), CSV export (swaps in a `contributor` column when exporting a Hub)
+- **Import/Export**: CSV import (via ExpenseForm on Dashboard and MobileQuickAdd), CSV export in AccountView, AI bulk receipt OCR import (with Basic/Pro toggle) via ExpenseForm and MobileQuickAdd.
 - **Dark mode**: System-aware toggle with localStorage persistence
 - **Real-time sync**: Pusher WebSocket events (per-user and per-Hub channels) + 5-min polling fallback
-- **Mobile**: Responsive layout with FAB quick-add button, incl. Space selector
+- **Mobile**: Responsive layout with bottom navigation bar (Dashboard, Expense, + Quick Add, Income, Account) on mobile and sidebar on desktop (lg+). Bottom nav has a concave center cutout with a raised gradient Quick Add button. The hamburger menu is removed entirely — mobile uses the bottom nav exclusively. Header buttons are centered on mobile, right-aligned on desktop.
+
+### CI/CD
+- GitHub Actions CI runs on push/PR to `main` (`.github/workflows/ci.yml`)
+- Jobs: Type Check Client (`tsc --noEmit`), Type Check Server (`tsc --noEmit`), Build Client (`vite build`), Build Server (`tsc`), Svelte Check (optional, `continue-on-error`)
+- The root `tsconfig.json` excludes `server/` because the server uses `NodeNext` module resolution vs the client's `bundler` mode
+
+### Documentation policy
+- This file must be updated after every session or meaningful change before committing.
+- The architecture tree, component list, API endpoints, data model, state model, and features summary sections all need review when:
+  - A new component, view, or module is added or removed
+  - A new API route is added, removed, or changed
+  - A new state variable or data model field is introduced
+  - A feature flow or constraint changes
+- Keeping this file current ensures Claude has accurate context for future work.
 
 ### Adding a new feature
 1. Add TypeScript interfaces in `src/types.ts` if needed.
