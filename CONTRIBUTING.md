@@ -131,10 +131,31 @@ npm run dev                  # Vite dev server, http://localhost:5173, proxies /
 |---|---|
 | Frontend dev server (HMR) | `npm run dev` |
 | Frontend production build | `npm run build` |
+| Frontend type check | `npx tsc --noEmit` |
 | Preview frontend build | `npm run preview` |
 | Backend dev server (hot reload) | `cd server && npm run dev` |
 | Compile server TypeScript | `cd server && npm run build` |
 | Run compiled server | `cd server && npm start` |
+| Full CI suite (run before every commit) | `npm run build && npx tsc --noEmit && cd server && npm run build` |
+
+### Pre-commit checklist
+
+Before every commit, run the full CI suite and verify everything passes:
+
+```bash
+npm run build                  # client build (vite)
+npx tsc --noEmit               # client type check
+cd server && npm run build     # server type check + compile
+cd ..                          # back to root
+```
+
+### Documentation
+
+`CLAUDE.md` must be updated after every session or meaningful change before committing. The architecture tree, component list, API endpoints, data model, state model, and features summary sections all need review when:
+- A new component, view, or module is added or removed
+- A new API route is added, removed, or changed
+- A new state variable or data model field is introduced
+- A feature flow or constraint changes
 
 ### Frontend changes
 

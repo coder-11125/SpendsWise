@@ -278,6 +278,12 @@ Transaction deletion only updates local state after the server confirms success.
 - GitHub Actions CI runs on push/PR to `main` (`.github/workflows/ci.yml`)
 - Jobs: Type Check Client (`tsc --noEmit`), Type Check Server (`tsc --noEmit`), Build Client (`vite build`), Build Server (`tsc`), Svelte Check (optional, `continue-on-error`)
 - The root `tsconfig.json` excludes `server/` because the server uses `NodeNext` module resolution vs the client's `bundler` mode
+- **The full CI suite must be run locally before every commit. There are no exceptions.** Run:
+  ```bash
+  npm run build                  # client build
+  npx tsc --noEmit               # client type check
+  cd server && npm run build     # server type check + compile
+  ```
 
 ### Documentation policy
 - This file must be updated after every session or meaningful change before committing.

@@ -17,8 +17,9 @@ A personal finance tracker built with Svelte 5, TypeScript, Express, and MongoDB
 - **Notifications** — Pending Hub invites appear in a Header dropdown instead of an app-load popup, with real-time Pusher updates and accept/decline actions
 - **Signed balances** — Total Balance is calculated as income minus expenses, so expense-only or overspent ledgers show a negative balance
 - **Dark mode** — System-aware toggle persisted to `localStorage`
-- **Mobile** — Responsive layout with FAB quick-add button
+- **Mobile** — Responsive layout with bottom navigation bar (Dashboard, Expense, + Quick Add, Income, Account) on mobile and sidebar on desktop. Bottom nav has a concave center cutout with a raised gradient Quick Add button
 - **Google OAuth** — Sign in with Google in addition to email/password
+- **CI/CD** — GitHub Actions (`.github/workflows/ci.yml`) runs type checks and builds on push/PR to `main`
 
 ## Spaces (Hubs)
 
