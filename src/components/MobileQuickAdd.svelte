@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { saveTransaction, switchSpace } from '../lib/api.js';
+  import { saveTransaction, switchSpace, uploadBulkExpenses, loadExpenses, parseReceiptsBulk } from '../lib/api.js';
   import { addExpenseItem, getCurrentCurrency, getSpaces, getCurrentSpaceId } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
+  import { compressImageToDataUrl } from '../lib/utils.js';
   import CategorySelect from './CategorySelect.svelte';
+  import BulkImportModal from './BulkImportModal.svelte';
 
   let { show, onclose } = $props();
 
@@ -23,6 +25,19 @@
   let spaces = $derived(getSpaces());
   let currentSpaceId = $derived(getCurrentSpaceId());
   let switchingSpace = $state(false);
+
+  // CSV import
+  let csvImporting = $state(false);
+  let csvResult = $state<{ success: boolean; message: string } | null>(null);
+  let csvFileInput: HTMLInputElement;
+
+  // Receipt / OCR import
+  let receiptProcessing = $state(false);
+  let receiptProgress = $state('');
+  let parsedReceipts = $state<any[]>([]);
+  let showBulkModal = $state(false);
+  let ocrPro = $state(false);
+  let receiptInput: HTMLInputElement;
 
   async function handleSpaceChange(e) {
     const value = e.target.value;
@@ -74,6 +89,95 @@
     } finally {
       loading = false;
     }
+  }
+
+  // CSV import handlers
+  function triggerCsvImport() {
+    csvFileInput?.click();
+  }
+
+  async function handleCsvFileSelect(ev) {
+    const file = ev.target.files[0];
+    if (!file) return;
+    csvImporting = true;
+    csvResult = null;
+    try {
+      const text = await file.text();
+      const lines = text.trim().split('\n');
+      if (lines.length < 2) {
+        csvResult = { success: false, message: 'CSV file is empty or has no data rows.' };
+        return;
+      }
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const rows = lines.slice(1).filter(l => l.trim()).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = values[i] || '');
+        return obj;
+      });
+      const res = await uploadBulkExpenses(rows);
+      await loadExpenses();
+      csvResult = { success: true, message: `Successfully imported ${res.count || rows.length} item(s).` };
+    } catch (err) {
+      csvResult = { success: false, message: err.message || 'Failed to import CSV.' };
+    } finally {
+      csvImporting = false;
+      ev.target.value = '';
+    }
+  }
+
+  // Receipt import handlers
+  async function handleBulkReceiptUpload(e) {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    receiptProcessing = true;
+    receiptProgress = `Compressing ${files.length} receipt${files.length > 1 ? 's' : ''}...`;
+    const dataUrls = await Promise.all(
+      files.map((f) => compressImageToDataUrl(f, 1920, 0.7))
+    );
+    receiptProgress = `Processing ${dataUrls.length} receipt${dataUrls.length > 1 ? 's' : ''}...`;
+    try {
+      const data = await parseReceiptsBulk(dataUrls, ocrPro);
+      receiptProgress = '';
+      const flat: any[] = [];
+      const today = new Date().toISOString().split('T')[0];
+      for (const r of data.results ?? []) {
+        if (r.error) continue;
+        for (const item of r.items ?? []) {
+          flat.push({
+            type: item.type || 'expense',
+            amount: item.amount,
+            category: item.category || 'Other',
+            date: r.date || today,
+            note: item.name || item.note || '',
+          });
+        }
+      }
+      if (flat.length > 0) {
+        parsedReceipts = flat;
+        showBulkModal = true;
+      } else {
+        alert('Could not extract data from any of the receipts.');
+      }
+    } catch (err) {
+      console.error('Bulk receipt parse failed:', err);
+      receiptProgress = '';
+      alert('Failed to process receipts. Please try again.');
+    }
+    receiptProcessing = false;
+    e.target.value = '';
+  }
+
+  function handleBulkSave(saved: any[]) {
+    showBulkModal = false;
+    parsedReceipts = [];
+    for (const item of saved) {
+      addExpenseItem(item);
+    }
+  }
+
+  function triggerReceiptUpload() {
+    receiptInput?.click();
   }
 </script>
 
@@ -184,6 +288,82 @@
           {/if}
         </button>
       </form>
+
+      <!-- Import section -->
+      <div class="mt-6 pt-6 border-t border-slate-200">
+        <div class="flex items-center gap-2 mb-3">
+          <i class="ph ph-lightning text-blue-600"></i>
+          <h3 class="text-sm font-semibold text-slate-700">Import</h3>
+        </div>
+
+        <!-- Receipt / OCR import -->
+        <div class="mb-3">
+          <button onclick={triggerReceiptUpload} disabled={receiptProcessing} class="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors cursor-pointer disabled:text-slate-300">
+            <i class="ph ph-camera"></i>
+            <span>{receiptProcessing ? 'Importing...' : 'Import Receipts'}</span>
+          </button>
+          <div class="flex gap-2 mt-2">
+            <label class="flex-1 flex flex-col gap-0.5 cursor-pointer border rounded-lg px-3 py-2 transition-colors {!ocrPro ? 'border-blue-300 bg-blue-50' : 'border-slate-200'}">
+              <span class="flex items-center gap-1.5">
+                <input type="radio" name="ocrMode" checked={!ocrPro} onchange={() => ocrPro = false} class="text-blue-600 focus:ring-blue-500" />
+                <span class="text-xs font-medium text-slate-700">Basic OCR <span class="text-slate-400 font-normal">(3 credits)</span></span>
+              </span>
+              <span class="text-[11px] text-slate-500 leading-snug">Good OCR capabilities at least amount of quota</span>
+            </label>
+            <label class="flex-1 flex flex-col gap-0.5 cursor-pointer border rounded-lg px-3 py-2 transition-colors {ocrPro ? 'border-blue-300 bg-blue-50' : 'border-slate-200'}">
+              <span class="flex items-center gap-1.5">
+                <input type="radio" name="ocrMode" checked={ocrPro} onchange={() => ocrPro = true} class="text-blue-600 focus:ring-blue-500" />
+                <span class="text-xs font-medium text-slate-700">OCR Pro <span class="text-slate-400 font-normal">(6 credits)</span></span>
+              </span>
+              <span class="text-[11px] text-slate-500 leading-snug">Extreme OCR capabilities. Use sparingly for messy, handwritten receipts in low light</span>
+            </label>
+          </div>
+          <input bind:this={receiptInput} type="file" accept="image/*" multiple class="hidden" onchange={handleBulkReceiptUpload} />
+          {#if receiptProgress}
+            <div class="flex items-center gap-2 text-sm text-slate-500 mt-2">
+              <i class="ph ph-circle-notch animate-spin"></i>
+              <span>{receiptProgress}</span>
+            </div>
+          {/if}
+        </div>
+
+        <!-- CSV import -->
+        <div>
+          <button onclick={triggerCsvImport} disabled={csvImporting} class="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors cursor-pointer disabled:text-slate-300">
+            <i class="ph ph-file-csv"></i>
+            <span>{csvImporting ? 'Importing...' : 'Import CSV'}</span>
+          </button>
+          <input bind:this={csvFileInput} type="file" accept=".csv" class="hidden" onchange={handleCsvFileSelect} />
+          {#if csvImporting}
+            <div class="flex items-center gap-2 text-sm text-slate-500 mt-2">
+              <i class="ph ph-circle-notch animate-spin"></i>
+              <span>Importing CSV...</span>
+            </div>
+          {/if}
+          {#if csvResult}
+            <div class="mt-2 px-3 py-2 rounded-lg text-sm {csvResult.success ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">
+              {#if csvResult.success}
+                <i class="ph ph-check-circle mr-1"></i>
+              {:else}
+                <i class="ph ph-x-circle mr-1"></i>
+              {/if}
+              {csvResult.message}
+              {#if csvResult.success}
+                <button onclick={() => { csvResult = null; onclose?.(); }} class="ml-2 text-blue-600 hover:underline">Close</button>
+              {:else}
+                <button onclick={() => csvResult = null} class="ml-2 text-blue-600 hover:underline">Dismiss</button>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      </div>
     </div>
   </div>
 {/if}
+
+<BulkImportModal
+  show={showBulkModal}
+  results={parsedReceipts}
+  onclose={() => { showBulkModal = false; parsedReceipts = []; }}
+  onsave={handleBulkSave}
+/>

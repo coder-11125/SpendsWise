@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { getExpense, getCurrentCurrency, setExpense, getBudgetGoals, setBudgetGoals, getCustomCategories, removeCustomCategory, getHiddenCategories, hideCategory, unhideCategory, getCurrentSpaceId, getSpaces, getUserId, confirmDialog } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
-  import { changePassword, deleteAllExpenses, getProfile, uploadBulkExpenses, loadExpenses, deleteSpace, logout } from '../lib/api.js';
+  import { changePassword, deleteAllExpenses, getProfile, deleteSpace, logout } from '../lib/api.js';
   import { calculateSummary } from '../lib/calculations.svelte.js';
   import { defaultExpenseCategories, defaultIncomeCategories } from '../lib/constants.js';
 
@@ -253,35 +253,15 @@
   </div>
 
   <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-    <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Import / Export</h3>
+    <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Export</h3>
     <div class="grid grid-cols-1 sm:flex sm:flex-wrap gap-3">
       <button onclick={handleExportCsv}
         class="w-full sm:w-auto px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2">
         <i class="ph ph-download"></i>
         Export CSV
       </button>
-      <button onclick={triggerImport}
-        class="w-full sm:w-auto px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2">
-        <i class="ph ph-upload"></i>
-        {isImporting ? 'Importing...' : 'Import CSV'}
-      </button>
     </div>
-    <input type="file" accept=".csv" bind:this={fileInput} onchange={handleFileSelect} class="hidden" />
   </div>
-
-  {#if importResult}
-    <div role="presentation" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick={() => importResult = null}>
-      <div role="presentation" class="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl" onclick={(e) => e.stopPropagation()}>
-        <div class="flex items-center gap-2 mb-4">
-          <i class="ph {importResult.success ? 'ph-check-circle text-emerald-500' : 'ph-x-circle text-rose-500'} text-xl"></i>
-          <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{importResult.success ? 'Import Successful' : 'Import Failed'}</h3>
-        </div>
-        <p class="text-slate-600 dark:text-slate-300">{importResult.message}</p>
-        <button onclick={() => importResult = null}
-          class="mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm">Close</button>
-      </div>
-    </div>
-  {/if}
 
   <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
     <div class="flex items-center justify-between">
