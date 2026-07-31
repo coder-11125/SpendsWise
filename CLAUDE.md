@@ -89,13 +89,13 @@ src/
 ### Backend architecture
 ```
 server/src/
-├── app.ts                      # Express app setup — middleware, routes, recurring scheduler
-├── index.ts                    # Local dev server entry (listens on PORT)
+├── app.ts                      # Express app setup — middleware, routes, protected cron endpoint
+├── index.ts                    # Local dev server entry (listens on PORT, starts the 60s recurring timer)
 ├── config.ts                   # Environment variable loading (MongoDB, JWT, CSRF, Groq, Pusher, Google)
 ├── db.ts                       # MongoDB connection with reconnect logic (main database)
 ├── lib/
 │   ├── pusher.ts               # Pusher real-time notifications (per-user `user-{id}` and per-Hub `space-{id}` channels)
-│   ├── recurringScheduler.ts   # 60s interval scheduler — personal ledger + every Hub's ledger
+│   ├── recurringScheduler.ts   # Atomic recurring generator: global scan (cron), per-user/per-Hub lazy catch-up, and the 60s interval used only by the standalone server
 │   ├── spaceDb.ts              # Resolves each Hub's own MongoDB database/model via mongoose useDb()
 │   └── expenseHandlers.ts      # Shared CRUD route logic reused by both expenses.ts and spaceExpenses.ts
 ├── middleware/
@@ -115,6 +115,7 @@ server/src/
 │   ├── auth.ts                 # POST /login, /register, /logout, GET /me, /csrf, PUT /password, /timezone, Google OAuth
 │   ├── expenses.ts             # CRUD /expenses, GET /recurring, PUT /:id/recurring, POST /bulk, DELETE all (personal ledger)
 │   ├── spaces.ts                # Hub CRUD, rename, delete, invite/respond, member rename/remove
+│   ├── cron.ts                 # GET /recurring — protected by CRON_SECRET bearer; runs the global recurring scan
 │   ├── spaceExpenses.ts        # Same CRUD/recurring shape as expenses.ts, mounted at /api/spaces/:spaceId/expenses
 │   ├── ai.ts                   # POST /chat, /parse-receipt, /parse-receipts-bulk, GET /quota
 │   ├── currency.ts             # GET /rates, GET /convert (proxies exchangerate-api)
@@ -147,7 +148,10 @@ server/src/
 }
 ```
 - Generated recurring entries are plain expenses (no `recurrence` field) — only the template has it.
-- The recurring scheduler (`server/src/lib/recurringScheduler.ts`) runs every 60s, processes due templates in the personal ledger **and** every Hub's ledger, advances `nextDueDate`, and deactivates on `endDate`.
+- Recurring generation is triggered three ways, all safe together (templates are claimed atomically, so no double-generation):
+  1. **Lazy catch-up** — every `GET /api/expenses` / `GET /api/spaces/:spaceId/expenses` generates that user/Hub's due entries before returning, so entries always appear on next visit.
+  2. **Cron endpoint** — `GET /api/cron/recurring` (requires `Authorization: Bearer CRON_SECRET`) runs the global scan across all users and every Hub's ledger.
+  3. **Standalone server** — `server/src/index.ts` (local dev, dedicated host) also runs a 60s `setInterval`. Serverless `app.ts` must NOT start the interval; Vercel functions scale to zero.
 
 #### User (Mongoose, main database)
 ```
@@ -258,6 +262,7 @@ Transaction deletion only updates local state after the server confirms success.
 | GET | `/api/currency/rates?base=` | Get currency conversion rates |
 | GET | `/api/currency/convert` | Convert a single amount between currencies |
 | GET | `/api/summaries` | Weekly AI-narrated summaries (generates the latest completed week's on first request) |
+| GET | `/api/cron/recurring` | Global recurring scan — requires `Authorization: Bearer <CRON_SECRET>`; invoked by Vercel cron + GitHub Actions `Recurring Cron` workflow |
 | GET | `/api/ai/quota` | Get AI usage quota (weekly remaining) |
 | POST | `/api/ai/chat` | AI chat assistant (can add/edit/delete transactions via tool calls) |
 | POST | `/api/ai/parse-receipt` | AI receipt OCR (single, optional `pro` mode) |
@@ -280,6 +285,7 @@ Transaction deletion only updates local state after the server confirms success.
 ### CI/CD
 - GitHub Actions CI runs on push/PR to `main` (`.github/workflows/ci.yml`)
 - Jobs: Type Check Client (`tsc --noEmit`), Type Check Server (`tsc --noEmit` + test tsconfig), Build Client (`vite build`), Build Server (`tsc`), Test Client (`npm test`), Test Server (`npm test`), Svelte Check (optional, `continue-on-error`)
+- `.github/workflows/recurring-cron.yml` pings `GET /api/cron/recurring` every 15 min (requires the `CRON_SECRET` repo secret). Vercel cron (`vercel.json`) runs the same endpoint — every 5 min on Pro, daily on Hobby. The endpoint is idempotent, so overlaps are harmless.
 - The root `tsconfig.json` excludes `server/` because the server uses `NodeNext` module resolution vs the client's `bundler` mode
 - **The full CI suite must be run locally before every commit. There are no exceptions.** Run:
   ```bash

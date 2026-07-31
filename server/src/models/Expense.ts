@@ -37,6 +37,9 @@ expenseSchema.index({ userId: 1, date: -1 });
 // (find({"recurrence.isActive":true,"recurrence.nextDueDate":{$lte:now}})),
 // which has no userId to filter by.
 expenseSchema.index({ "recurrence.isActive": 1, "recurrence.nextDueDate": 1 });
+// Serves the per-user lazy catch-up on ledger reads
+// (find({userId, "recurrence.isActive":true, "recurrence.nextDueDate":{$lte:now}})).
+expenseSchema.index({ userId: 1, "recurrence.isActive": 1, "recurrence.nextDueDate": 1 });
 
 export type Expense = InferSchemaType<typeof expenseSchema> & { _id: Types.ObjectId };
 export const ExpenseModel = model("Expense", expenseSchema);

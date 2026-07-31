@@ -16,15 +16,20 @@ export interface ExpenseCrudOptions {
   // this ledger's schema supports on create/update/bulk — e.g. "familyMember"
   // for the personal ledger, none for a Space ledger.
   extraFields?: string[];
+  // Runs before the ledger list is read (lazy recurring catch-up). Personal
+  // route passes processRecurringForUser; a Space route passes
+  // processRecurringForSpace. Must be fast: it only touches due templates.
+  beforeList?: (req: Request) => Promise<void>;
 }
 
 export function createExpenseCrudRouter(options: ExpenseCrudOptions): Router {
-  const { getModel, scopeFilter, stampOwner, notify, extraFields = [] } = options;
+  const { getModel, scopeFilter, stampOwner, notify, extraFields = [], beforeList } = options;
   const router = Router({ mergeParams: true });
 
   router.get(
     "/",
     asyncHandler(async (req, res) => {
+      if (beforeList) await beforeList(req);
       const expenses = await getModel(req).find({ ...scopeFilter(req) }).sort({ date: -1 }).lean();
       // Poll/Pusher-triggered refetches usually see no change. An ETag lets
       // the browser's own HTTP cache skip re-transferring the body when the

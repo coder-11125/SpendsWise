@@ -34,6 +34,7 @@ export const config = {
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL ?? "http://localhost:5173/api/auth/google/callback",
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:5173",
+  cronSecret: process.env.CRON_SECRET ?? "",
   groqApiKey: process.env.GROQ_API_KEY ?? "",
   groqVisionApiKey: process.env.GROQ_VISION_API_KEY ?? "",
   pusherAppId: process.env.PUSHER_APP_ID ?? "",

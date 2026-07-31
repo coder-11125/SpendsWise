@@ -41,13 +41,15 @@ function calculateNextDueDate(
 async function processRecurringForModel(
   Model: Model<any>,
   extraCreateFields: (template: any) => Record<string, unknown>,
-  getNotifyKey: (template: any) => string
+  getNotifyKey: (template: any) => string,
+  filter: Record<string, unknown> = {}
 ): Promise<Set<string>> {
   const now = new Date();
   const notifyKeys = new Set<string>();
 
   while (true) {
     const template: any = await Model.findOne({
+      ...filter,
       "recurrence.isActive": true,
       "recurrence.nextDueDate": { $lte: now },
     }).lean();
@@ -59,7 +61,7 @@ async function processRecurringForModel(
 
     if (rec.endDate && new Date(rec.endDate) < now) {
       await Model.findOneAndUpdate(
-        { _id: template._id, "recurrence.nextDueDate": rec.nextDueDate },
+        { _id: template._id, ...filter, "recurrence.nextDueDate": rec.nextDueDate },
         { $set: { "recurrence.isActive": false } }
       );
       continue;
@@ -69,7 +71,7 @@ async function processRecurringForModel(
     const shouldDeactivate = !!(rec.endDate && nextDue > new Date(rec.endDate));
 
     const claimed = await Model.findOneAndUpdate(
-      { _id: template._id, "recurrence.nextDueDate": rec.nextDueDate },
+      { _id: template._id, ...filter, "recurrence.nextDueDate": rec.nextDueDate },
       { $set: { "recurrence.nextDueDate": nextDue, "recurrence.isActive": !shouldDeactivate } },
       { new: false }
     );
@@ -129,8 +131,46 @@ export async function processRecurringTransactions(): Promise<void> {
 }
 
 /**
+ * Process due recurring transactions for a single user's personal ledger.
+ * Called from the expense list route so entries appear the moment the user
+ * opens the app (lazy catch-up), without needing a global scheduler tick.
+ */
+export async function processRecurringForUser(userId: string): Promise<void> {
+  const affectedUsers = await processRecurringForModel(
+    ExpenseModel,
+    (template) => ({ userId: template.userId, familyMember: template.familyMember || "" }),
+    (template) => String(template.userId),
+    { userId }
+  );
+  if (affectedUsers.size > 0) {
+    for (const uid of affectedUsers) notifyDataChanged(uid);
+  }
+}
+
+/**
+ * Process due recurring transactions for a single Hub's ledger.
+ */
+export async function processRecurringForSpace(spaceId: string): Promise<void> {
+  const spaceModel = getSpaceExpenseModel(spaceId);
+  const notified = await processRecurringForModel(
+    spaceModel,
+    (template) => ({ authorUserId: template.authorUserId }),
+    () => spaceId
+  );
+  if (notified.size > 0) {
+    notifySpaceDataChanged(spaceId);
+  }
+}
+
+/**
  * Start the recurring transaction scheduler.
  * Checks every 60 seconds for due transactions.
+ *
+ * Only intended for long-running processes (local `npm run dev`, a dedicated
+ * worker host). Serverless deployments must NOT call this — Vercel functions
+ * scale to zero and a setInterval only ticks while an instance is alive.
+ * Use the protected /api/cron/recurring endpoint instead (Vercel cron or the
+ * GitHub Actions schedule), plus the lazy per-user catch-up on ledger reads.
  */
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 

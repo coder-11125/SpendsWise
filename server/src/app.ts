@@ -14,9 +14,9 @@ import spaceExpenseRoutes from "./routes/spaceExpenses.js";
 import aiRoutes from "./routes/ai.js";
 import currencyRoutes from "./routes/currency.js";
 import summaryRoutes from "./routes/summaries.js";
+import cronRoutes from "./routes/cron.js";
 import { config } from "./config.js";
 import { doubleCsrfProtection, invalidCsrfTokenError } from "./middleware/csrf.js";
-import { startRecurringScheduler } from "./lib/recurringScheduler.js";
 
 const app = express();
 
@@ -132,9 +132,12 @@ app.use("/api/spaces", expenseLimiter, spaceRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/currency", expenseLimiter, currencyRoutes);
 app.use("/api/summaries", expenseLimiter, summaryRoutes);
-
-// Start recurring transaction scheduler
-startRecurringScheduler();
+// Protected scheduler endpoint (Vercel cron / GitHub Actions) — runs the
+// recurring transaction scan. Not called by browser clients. The recurring
+// scheduler must NOT run on setInterval here: Vercel functions scale to zero,
+// so a timer would only tick while a request is keeping an instance alive.
+// Per-user lazy catch-up on ledger reads keeps correctness regardless.
+app.use("/api/cron", cronRoutes);
 
 // C1: Handle CSRF validation failures with a clear 403 before the generic handler
 app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {

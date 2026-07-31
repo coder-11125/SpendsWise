@@ -176,6 +176,7 @@ Set these in `server/.env` for local development, or in your Vercel dashboard fo
 | `GOOGLE_CLIENT_SECRET` | no | Google OAuth client secret |
 | `GOOGLE_CALLBACK_URL` | no | Default: `http://localhost:5173/api/auth/google/callback` |
 | `FRONTEND_URL` | no | Default: `http://localhost:5173` (must match Vite dev server or Vercel URL) |
+| `CRON_SECRET` | recommended | Secret for the scheduler endpoint `/api/cron/recurring`. Set the **same** value in Vercel env vars and as a GitHub Actions repository secret (`.github/workflows/recurring-cron.yml`). Vercel sends it automatically as the Authorization header on cron invocations. |
 | `GROQ_API_KEY` | no | Enables AI features — get one free at [console.groq.com](https://console.groq.com) |
 | `GROQ_MODEL` | no | Groq text model for chat/summaries (default: `llama-3.3-70b-versatile`) |
 | `GROQ_VISION_API_KEY` | no | Separate Groq key for receipt OCR — falls back to `GROQ_API_KEY` |
@@ -192,6 +193,11 @@ Set these in `server/.env` for local development, or in your Vercel dashboard fo
 Omitting `PUSHER_*` falls back to 5-minute polling only. Omitting `GROQ_API_KEY` disables all `/api/ai/*` endpoints (they respond 503) — everything else works normally.
 
 ## API
+
+**Recurring transactions scheduler** (no browser client calls this):
+
+- `GET /api/cron/recurring` — runs the global recurring scan (personal ledgers + every Hub). Requires `Authorization: Bearer <CRON_SECRET>`. Invoked by Vercel cron (`vercel.json`, every 5 min on Pro / daily on Hobby) and by the GitHub Actions `Recurring Cron` workflow (`*/15 * * * *`). Safe to call concurrently — each template is claimed atomically.
+- **Lazy catch-up**: `GET /api/expenses` and `GET /api/spaces/:spaceId/expenses` also generate any due recurring entries for that user/Hub before returning, so recurring transactions always appear the moment someone opens the app, even if the cron was delayed or the free tier only allows one run per day.
 
 Session is managed via an HttpOnly cookie (`sw_session`). All state-changing requests must include a valid CSRF token in the `x-csrf-token` header — fetch one from `GET /api/auth/csrf` first.
 

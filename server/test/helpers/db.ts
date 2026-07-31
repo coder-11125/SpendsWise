@@ -1,18 +1,21 @@
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
 
-// A single in-memory MongoDB instance per test file. Started in beforeAll and
-// stopped in afterAll so the detached mongod process is always cleaned up,
-// even when a test fails (vitest still runs afterAll).
-let memoryServer: MongoMemoryServer | null = null;
+// The in-memory MongoDB is started once for the whole test run by
+// test/global-setup.ts, which exposes its URI as TEST_MONGODB_URI. Vitest
+// always runs globalSetup (even for a single filtered file), so this helper
+// only manages the mongoose connection lifecycle.
 
 export async function startTestDb(): Promise<string> {
-  if (mongoose.connection.readyState !== 0) {
-    return memoryServer?.getUri() ?? "mongodb://127.0.0.1:27017/spendswise-test";
+  const uri = process.env.TEST_MONGODB_URI;
+  if (!uri) {
+    throw new Error(
+      "TEST_MONGODB_URI is not set. Run tests with vitest so test/global-setup.ts can start the in-memory MongoDB."
+    );
   }
-  memoryServer = await MongoMemoryServer.create();
-  await mongoose.connect(memoryServer.getUri());
-  return memoryServer.getUri();
+  if (mongoose.connection.readyState === 0) {
+    await mongoose.connect(uri);
+  }
+  return uri;
 }
 
 export async function clearDb(): Promise<void> {
@@ -29,8 +32,4 @@ export async function clearDb(): Promise<void> {
 
 export async function stopTestDb(): Promise<void> {
   await mongoose.disconnect();
-  if (memoryServer) {
-    await memoryServer.stop();
-    memoryServer = null;
-  }
 }

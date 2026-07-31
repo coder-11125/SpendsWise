@@ -158,9 +158,14 @@ cd ..                          # back to root
 
 - **Client** (`src/**/*.test.ts`): unit tests for pure logic — currency conversion, summary calculations, date/trend helpers, and chart rendering. Run with `npm test` from the root (Vitest + jsdom).
 - **Server** (`server/test/**/*.test.ts`): route and middleware integration tests using Vitest + Supertest against a real in-memory MongoDB (`mongodb-memory-server`). No external services or credentials are needed; the in-memory server binary is pinned to MongoDB 6.0.19 (7.x requires AVX2) and cached in `server/.mongodb-binaries` (git-ignored).
-- Server tests run sequentially in a single worker (`fileParallelism: false`) so exactly one in-memory MongoDB is alive at a time.
-- The full-app test (`server/test/app.test.ts`) must stay alphabetically first: it boots the Express app after pointing `MONGODB_URI` at the in-memory server, and `src/config.ts` freezes its env at first import. Don't add static imports of `src/**` modules to that file (import them dynamically inside hooks/tests) or config will load with the placeholder URI.
+- One in-memory MongoDB is shared across the whole run, started/stopped by vitest's global hooks (`server/test/global-setup.ts` / `global-teardown.ts`). Its URI reaches every worker via `TEST_MONGODB_URI`, and `server/test/setup.ts` points `MONGODB_URI` at it before any `src/**` module loads (config.ts freezes env at import). Tests run sequentially in a single worker.
 - New route handlers, middleware, and shared logic should come with tests covering the happy path plus the validation/error branches.
+
+### Recurring transactions
+
+- Generation is triggered three ways, all idempotent (templates are claimed with an atomic `findOneAndUpdate`, so overlapping runs never double-generate): lazy catch-up on ledger reads (`GET /api/expenses`, `GET /api/spaces/:spaceId/expenses`), the protected `GET /api/cron/recurring` endpoint, and the 60s `setInterval` in `server/src/index.ts` (local dev / dedicated host only).
+- Never start the `setInterval` in `app.ts` — Vercel serverless functions scale to zero, so a timer would only tick while a request keeps an instance alive. Add schedule-driven triggers to `.github/workflows/recurring-cron.yml` (GitHub Actions) and/or `vercel.json` (`crons`), not to the request path.
+- `CRON_SECRET` must match between Vercel env vars and the GitHub Actions repository secret.
 
 ### Documentation
 

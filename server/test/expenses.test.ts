@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestDb, clearDb, stopTestDb } from "./helpers/db.js";
 import { createUser } from "./helpers/auth.js";
 import expenseRouter from "../src/routes/expenses.js";
+import { ExpenseModel } from "../src/models/Expense.js";
 
 const app = express();
 app.use(cookieParser());
@@ -238,5 +239,89 @@ describe("bulk import", () => {
       });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/Row 2/);
+  });
+});
+
+describe("lazy recurring catch-up on ledger read", () => {
+  function dueDate(): Date {
+    return new Date(Date.now() - 60_000);
+  }
+
+  it("generates the user's due recurring entries when the list is fetched", async () => {
+    const user = await createUser();
+    const due = dueDate();
+    await ExpenseModel.create({
+      userId: user._id,
+      type: "expense",
+      amount: 12,
+      category: "Subscriptions",
+      currency: "USD",
+      date: due,
+      recurrence: { frequency: "monthly", nextDueDate: due, isActive: true },
+    });
+
+    const res = await request(app).get("/api/expenses").set(as(user.token));
+    expect(res.status).toBe(200);
+
+    // The generated entry (recurrence cleared) is already in the response.
+    // The recurring template itself is also listed (with recurrence set), so
+    // filter on recurrence === null to isolate the generated entry.
+    const generated = res.body.filter(
+      (e: any) => e.category === "Subscriptions" && e.recurrence === null
+    );
+    expect(generated).toHaveLength(1);
+    expect(generated[0].amount).toBe(12);
+
+    // The template itself still exists and was advanced.
+    const template = await ExpenseModel.findOne({ userId: user._id, "recurrence.isActive": true });
+    expect(template).toBeTruthy();
+  });
+
+  it("does not touch another user's templates", async () => {
+    const withDue = await createUser();
+    const other = await createUser();
+    const due = dueDate();
+    await ExpenseModel.create({
+      userId: withDue._id,
+      type: "expense",
+      amount: 5,
+      category: "Due",
+      currency: "USD",
+      date: due,
+      recurrence: { frequency: "daily", nextDueDate: due, isActive: true },
+    });
+    await ExpenseModel.create({
+      userId: other._id,
+      type: "expense",
+      amount: 5,
+      category: "Other",
+      currency: "USD",
+      date: due,
+      recurrence: { frequency: "daily", nextDueDate: due, isActive: true },
+    });
+
+    await request(app).get("/api/expenses").set(as(withDue.token));
+
+    const otherGenerated = await ExpenseModel.find({ userId: other._id, recurrence: null });
+    expect(otherGenerated).toHaveLength(0);
+  });
+
+  it("does not generate anything when the template is not due yet", async () => {
+    const user = await createUser();
+    const future = new Date(Date.now() + 60 * 60 * 1000);
+    await ExpenseModel.create({
+      userId: user._id,
+      type: "expense",
+      amount: 9,
+      category: "Future",
+      currency: "USD",
+      date: future,
+      recurrence: { frequency: "daily", nextDueDate: future, isActive: true },
+    });
+
+    await request(app).get("/api/expenses").set(as(user.token));
+
+    const generated = await ExpenseModel.find({ userId: user._id, recurrence: null });
+    expect(generated).toHaveLength(0);
   });
 });

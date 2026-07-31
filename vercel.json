@@ -18,5 +18,11 @@
     { "src": "/health", "dest": "api/index.ts" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/recurring",
+      "schedule": "*/5 * * * *"
+    }
   ]
 }
