@@ -132,7 +132,7 @@ app.use("/api/spaces", expenseLimiter, spaceRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/currency", expenseLimiter, currencyRoutes);
 app.use("/api/summaries", expenseLimiter, summaryRoutes);
-// Protected scheduler endpoint (Vercel cron / GitHub Actions) — runs the
+// Protected scheduler endpoint (GitHub Actions workflow) — runs the
 // recurring transaction scan. Not called by browser clients. The recurring
 // scheduler must NOT run on setInterval here: Vercel functions scale to zero,
 // so a timer would only tick while a request is keeping an instance alive.

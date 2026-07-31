@@ -164,7 +164,7 @@ cd ..                          # back to root
 ### Recurring transactions
 
 - Generation is triggered three ways, all idempotent (templates are claimed with an atomic `findOneAndUpdate`, so overlapping runs never double-generate): lazy catch-up on ledger reads (`GET /api/expenses`, `GET /api/spaces/:spaceId/expenses`), the protected `GET /api/cron/recurring` endpoint, and the 60s `setInterval` in `server/src/index.ts` (local dev / dedicated host only).
-- Never start the `setInterval` in `app.ts` — Vercel serverless functions scale to zero, so a timer would only tick while a request keeps an instance alive. Add schedule-driven triggers to `.github/workflows/recurring-cron.yml` (GitHub Actions) and/or `vercel.json` (`crons`), not to the request path.
+- Never start the `setInterval` in `app.ts` — Vercel serverless functions scale to zero, so a timer would only tick while a request keeps an instance alive. Add schedule-driven triggers to `.github/workflows/recurring-cron.yml` (GitHub Actions), not to the request path.
 - `CRON_SECRET` must match between Vercel env vars and the GitHub Actions repository secret.
 
 ### Documentation

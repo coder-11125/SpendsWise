@@ -4,14 +4,13 @@ import { processRecurringTransactions } from "../lib/recurringScheduler.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 
 /**
- * Protected endpoints invoked by schedulers (Vercel cron, GitHub Actions
+ * Protected endpoints invoked by schedulers (the GitHub Actions recurring-cron
  * workflow) — never by browser clients.
  *
- * Vercel automatically sends the CRON_SECRET env value as an Authorization
- * header on cron invocations; the GitHub Actions workflow sends the same
- * secret explicitly. The endpoint is a GET so the CSRF middleware (which only
- * guards state-changing requests) never touches it, and its only side effect
- * is the idempotent, atomically-claimed recurring scan.
+ * The GitHub Actions workflow sends the CRON_SECRET value as an Authorization
+ * header; the endpoint is a GET so the CSRF middleware (which only guards
+ * state-changing requests) never touches it, and its only side effect is the
+ * idempotent, atomically-claimed recurring scan.
  */
 const router = Router();
 

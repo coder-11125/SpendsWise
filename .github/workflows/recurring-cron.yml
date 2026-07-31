@@ -2,8 +2,8 @@ name: Recurring Cron
 
 # Pings the protected recurring-transactions endpoint so due recurring entries
 # are generated even when nobody is visiting the app. The app is also correct
-# without this: every ledger read lazily catches up, and Vercel cron (vercel.json)
-# runs the same endpoint daily on the Hobby plan / every 5 min on Pro.
+# without this: every ledger read lazily catches up, so recurring entries always
+# appear the moment someone opens the app.
 #
 # GitHub Actions schedules are best-effort: runs can be delayed 5-30 min during
 # peak load and are auto-disabled after 60 days of repo inactivity. That is safe

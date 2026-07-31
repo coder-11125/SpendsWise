@@ -169,8 +169,8 @@ export async function processRecurringForSpace(spaceId: string): Promise<void> {
  * Only intended for long-running processes (local `npm run dev`, a dedicated
  * worker host). Serverless deployments must NOT call this — Vercel functions
  * scale to zero and a setInterval only ticks while an instance is alive.
- * Use the protected /api/cron/recurring endpoint instead (Vercel cron or the
- * GitHub Actions schedule), plus the lazy per-user catch-up on ledger reads.
+ * Use the protected /api/cron/recurring endpoint instead (GitHub Actions
+ * schedule), plus the lazy per-user catch-up on ledger reads.
  */
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 

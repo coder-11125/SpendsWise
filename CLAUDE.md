@@ -262,7 +262,7 @@ Transaction deletion only updates local state after the server confirms success.
 | GET | `/api/currency/rates?base=` | Get currency conversion rates |
 | GET | `/api/currency/convert` | Convert a single amount between currencies |
 | GET | `/api/summaries` | Weekly AI-narrated summaries (generates the latest completed week's on first request) |
-| GET | `/api/cron/recurring` | Global recurring scan — requires `Authorization: Bearer <CRON_SECRET>`; invoked by Vercel cron + GitHub Actions `Recurring Cron` workflow |
+| GET | `/api/cron/recurring` | Global recurring scan — requires `Authorization: Bearer <CRON_SECRET>`; invoked by the GitHub Actions `Recurring Cron` workflow |
 | GET | `/api/ai/quota` | Get AI usage quota (weekly remaining) |
 | POST | `/api/ai/chat` | AI chat assistant (can add/edit/delete transactions via tool calls) |
 | POST | `/api/ai/parse-receipt` | AI receipt OCR (single, optional `pro` mode) |
@@ -285,7 +285,7 @@ Transaction deletion only updates local state after the server confirms success.
 ### CI/CD
 - GitHub Actions CI runs on push/PR to `main` (`.github/workflows/ci.yml`)
 - Jobs: Type Check Client (`tsc --noEmit`), Type Check Server (`tsc --noEmit` + test tsconfig), Build Client (`vite build`), Build Server (`tsc`), Test Client (`npm test`), Test Server (`npm test`), Svelte Check (optional, `continue-on-error`)
-- `.github/workflows/recurring-cron.yml` pings `GET /api/cron/recurring` every 15 min (requires the `CRON_SECRET` repo secret). Vercel cron (`vercel.json`) runs the same endpoint — every 5 min on Pro, daily on Hobby. The endpoint is idempotent, so overlaps are harmless.
+- `.github/workflows/recurring-cron.yml` pings `GET /api/cron/recurring` every 15 min (requires the `CRON_SECRET` repo secret). The endpoint is idempotent, so overlapping runs are harmless.
 - The root `tsconfig.json` excludes `server/` because the server uses `NodeNext` module resolution vs the client's `bundler` mode
 - **The full CI suite must be run locally before every commit. There are no exceptions.** Run:
   ```bash
