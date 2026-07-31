@@ -33,7 +33,7 @@ SpendsWise/
 │   │   ├── utils.ts
 │   │   ├── charts.ts
 │   │   └── constants.ts
-│   ├── components/              # Modals, forms, cards, charts
+│   ├── components/              # Modals, forms, cards, charts (including BottomNav with AI button)
 │   └── views/                   # Dashboard, IncomeView, ExpenseView, AccountView, SpacesView, SummariesView
 ├── api/
 │   └── index.ts                 # Vercel serverless entry (re-exports the Express app)
@@ -186,6 +186,7 @@ cd ..                          # back to root
 - Transaction deletes must treat the server response as authoritative: remove the item from `_expense` only after a successful DELETE response. Preserve the active ledger path and invalidate stale load responses so polling or Pusher cannot restore deleted records.
 - Keep the dashboard balance signed. The calculation is `income - expenses`; do not apply absolute-value formatting to the balance card.
 - Pending Hub invites belong in the Header Notifications dropdown, not an app-load modal. Keep invite state in `_pendingInvites`, refresh it after authentication, and update it from the user's Pusher channel.
+- Mobile navigation uses the BottomNav component (hidden on desktop) with a concave center cutout for the Quick Add button. The AI button opens the AI chat panel as a modal via the `onai` prop. Desktop uses the Sidebar component instead.
 
 ### Server changes
 

@@ -4,9 +4,11 @@
   let {
     activeFilter = 'dashboard',
     onquickadd,
+    onai,
   }: {
     activeFilter?: string;
     onquickadd?: () => void;
+    onai?: () => void;
   } = $props();
 
   const navItems = [
@@ -18,6 +20,8 @@
     { filter: 'income', icon: 'ph-trend-up', label: 'Income' },
     { filter: 'account', icon: 'ph-user', label: 'Account' },
   ];
+
+  const aiButton = { icon: 'ph-brain', label: 'AI' };
 
   function handleNav(filter: string) {
     navigate('/' + filter);
@@ -68,6 +72,14 @@
           <span class="text-[10px] font-medium leading-tight">{item.label}</span>
         </button>
       {/each}
+      <!-- AI Button -->
+      <button
+        onclick={() => onai?.()}
+        class="flex flex-col items-center gap-0.5 py-1.5 px-3 min-w-0 transition-colors cursor-pointer text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+      >
+        <i class="ph {aiButton.icon} text-xl"></i>
+        <span class="text-[10px] font-medium leading-tight">{aiButton.label}</span>
+      </button>
     </div>
   </div>
 </nav>

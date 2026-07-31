@@ -62,7 +62,7 @@ Accurate financial tracking where the Total Balance is calculated as income minu
 System-aware dark mode that automatically switches based on your OS preference. The toggle state is persisted to `localStorage` and can be manually overridden, with a smooth color transition across the entire application.
 
 ### Mobile-First Design
-Fully responsive layout with a dedicated mobile navigation experience. On mobile devices, a bottom navigation bar provides quick access to Dashboard, Expense, a floating Quick Add button, Income, and Account views. The bottom nav features a concave center cutout with a raised gradient Quick Add button for one-tap transaction entry. On desktop, a collapsible sidebar provides the same navigation.
+Fully responsive layout with a dedicated mobile navigation experience. On mobile devices, a bottom navigation bar provides quick access to Dashboard, Expense, a floating Quick Add button, Income, Account, and AI views. The bottom nav features a concave center cutout with a raised gradient Quick Add button for one-tap transaction entry. The AI button opens the AI chat panel as a modal for quick access to the finance assistant. On desktop, a collapsible sidebar provides the same navigation.
 
 <div align="center">
   <img src="./images/Mobile.png" width="250" style="display: inline; margin: 0 10px;" />

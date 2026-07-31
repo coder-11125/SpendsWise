@@ -58,7 +58,7 @@ src/
 ├── components/
 │   ├── AiChatPanel.svelte      # AI assistant slide-in panel (Groq-powered chat)
 │   ├── AuthModal.svelte        # Login/register modal
-│   ├── BottomNav.svelte        # Mobile bottom navigation bar with center + Quick Add button
+│   ├── BottomNav.svelte        # Mobile bottom navigation bar with center Quick Add button and AI button
 │   ├── BudgetOverview.svelte   # Per-category budget goal progress bars
 │   ├── BulkImportModal.svelte  # Receipt bulk import review/save modal
 │   ├── CurrencyModal.svelte    # Currency selector with live rates
@@ -280,7 +280,7 @@ Transaction deletion only updates local state after the server confirms success.
 - **Import/Export**: CSV import (via ExpenseForm on Dashboard and MobileQuickAdd), CSV export in AccountView, AI bulk receipt OCR import (with Basic/Pro toggle) via ExpenseForm and MobileQuickAdd.
 - **Dark mode**: System-aware toggle with localStorage persistence
 - **Real-time sync**: Pusher WebSocket events (per-user and per-Hub channels) + 5-min polling fallback
-- **Mobile**: Responsive layout with bottom navigation bar (Dashboard, Expense, + Quick Add, Income, Account) on mobile and sidebar on desktop (lg+). Bottom nav has a concave center cutout with a raised gradient Quick Add button. The hamburger menu is removed entirely — mobile uses the bottom nav exclusively. Header buttons are centered on mobile, right-aligned on desktop.
+- **Mobile**: Responsive layout with bottom navigation bar (Dashboard, Expense, + Quick Add, Income, Account, AI) on mobile and sidebar on desktop (lg+). Bottom nav has a concave center cutout with a raised gradient Quick Add button. The AI button opens the AI chat panel as a modal. The hamburger menu is removed entirely — mobile uses the bottom nav exclusively. Header buttons are centered on mobile, right-aligned on desktop.
 
 ### CI/CD
 - GitHub Actions CI runs on push/PR to `main` (`.github/workflows/ci.yml`)

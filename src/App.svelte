@@ -137,7 +137,7 @@
 </div>
 
 {#if view !== 'login' && view !== 'ai'}
-  <BottomNav activeFilter={view} onquickadd={() => showMobileQuickAdd = true} />
+  <BottomNav activeFilter={view} onquickadd={() => showMobileQuickAdd = true} onai={() => showAiChat = true} />
 {/if}
 {/if}
 
