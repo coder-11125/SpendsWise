@@ -64,7 +64,6 @@ jobs:
   svelte-check:
     name: Svelte Check
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

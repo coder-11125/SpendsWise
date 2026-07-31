@@ -4,6 +4,7 @@
   import { calculateSummary, calculateExpenseByCategory, calculateMemberBreakdown } from '../lib/calculations.svelte.js';
   import { calculateExpenseTrendData } from '../lib/utils.js';
   import { saveTransaction, deleteExpenseOnServer } from '../lib/api.js';
+  import type { Expense, Summary, CategoryData, TrendPoint } from '../types.js';
   import SummaryCards from '../components/SummaryCards.svelte';
   import BudgetOverview from '../components/BudgetOverview.svelte';
   import ExpenseForm from '../components/ExpenseForm.svelte';
@@ -13,17 +14,17 @@
   import RecurringUpcoming from '../components/RecurringUpcoming.svelte';
   import MemberBreakdown from '../components/MemberBreakdown.svelte';
 
-  let summary = $state({ income: 0, expenses: 0, balance: 0 });
-  let categoryData = $state([]);
-  let categoryTotal = $state(0);
-  let trendPoints = $state([]);
-  let trendTotal = $state(0);
-  let trendAverage = $state(0);
-  let trendPeriodLabel = $state('');
-  let recentExpenses = $state([]);
-  let trendRange = $state(getDashboardTrendRange());
-  let memberData = $state([]);
-  let memberTotal = $state(0);
+  let summary = $state<Summary>({ income: 0, expenses: 0, balance: 0 });
+  let categoryData = $state<CategoryData[]>([]);
+  let categoryTotal = $state<number>(0);
+  let trendPoints = $state<TrendPoint[]>([]);
+  let trendTotal = $state<number>(0);
+  let trendAverage = $state<number>(0);
+  let trendPeriodLabel = $state<string>('');
+  let recentExpenses = $state<Expense[]>([]);
+  let trendRange = $state<string>(getDashboardTrendRange());
+  let memberData = $state<CategoryData[]>([]);
+  let memberTotal = $state<number>(0);
   let inSpace = $derived(!!getCurrentSpaceId());
 
   async function refresh() {
@@ -48,7 +49,7 @@
     memberTotal = m.total;
   }
 
-  let cancelled = $state(false);
+  let cancelled = $state<boolean>(false);
 
   $effect(() => {
     cancelled = false;
@@ -59,16 +60,16 @@
     return () => { cancelled = true; };
   });
 
-  function handleTrendChange(r) {
+  function handleTrendChange(r: string) {
     trendRange = r;
     setDashboardTrendRange(r);
   }
 
-  async function handleAdd(saved) {
+  async function handleAdd(saved: Expense | null) {
     if (saved) addExpenseItem(saved);
   }
 
-  async function handleDelete(id) {
+  async function handleDelete(id: string) {
     if (await confirmDialog('Delete this item?')) {
       const deleted = await deleteExpenseOnServer(id);
       if (deleted) {

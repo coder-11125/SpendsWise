@@ -3,10 +3,16 @@
   import { getAllCategories } from '../lib/state.svelte.js';
   import CategorySelect from './CategorySelect.svelte';
 
-  let { show, results, onclose, onsave } = $props();
+  interface Props {
+    show: boolean;
+    results: any[];
+    onclose?: () => void;
+    onsave?: (saved: any[]) => void;
+  }
+  let { show, results, onclose, onsave }: Props = $props();
 
   interface Item {
-    type: string;
+    type: 'income' | 'expense';
     amount: string;
     category: string;
     date: string;
@@ -20,7 +26,7 @@
     if (show && results?.length) {
       const today = new Date().toISOString().split('T')[0];
       items = results.map((r: any) => ({
-        type: r.type || 'expense',
+        type: (r.type === 'income' || r.type === 'expense') ? r.type : 'expense',
         amount: r.amount != null ? String(r.amount) : '',
         category: r.category || 'Other',
         date: r.date || today,
@@ -47,7 +53,7 @@
   function addBlank() {
     const today = new Date().toISOString().split('T')[0];
     items = [...items, {
-      type: 'expense',
+      type: 'expense' as const,
       amount: '',
       category: 'Food & Dining',
       date: today,
@@ -70,7 +76,7 @@
       const amount = parseFloat(item.amount);
       if (isNaN(amount) || amount <= 0) continue;
       const result = await saveTransaction({
-        type: item.type as 'income' | 'expense',
+        type: item.type,
         amount,
         category: item.category,
         date: item.date,
@@ -86,10 +92,14 @@
   function handleOverlayClick(e: MouseEvent) {
     if (e.target === e.currentTarget) onclose?.();
   }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') onclose?.();
+  }
 </script>
 
 {#if show}
-<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in" onclick={handleOverlayClick}>
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in" onclick={handleOverlayClick} onkeydown={handleKeyDown} role="dialog" aria-modal="true" tabindex="-1">
   <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
     <div class="flex items-center justify-between p-5 border-b border-slate-200 shrink-0">
       <div class="flex items-center gap-3">
@@ -98,7 +108,7 @@
         </div>
         <h2 class="text-lg font-bold text-slate-800">Import Receipts</h2>
       </div>
-      <button onclick={() => onclose?.()} class="text-slate-400 hover:text-slate-600 transition-colors p-1">
+      <button onclick={() => onclose?.()} class="text-slate-400 hover:text-slate-600 transition-colors p-1" aria-label="Close modal">
         <i class="ph ph-x text-xl"></i>
       </button>
     </div>
@@ -120,12 +130,13 @@
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="text-xs text-slate-500 mb-1 block">Amount</label>
-                  <input type="number" step="0.01" bind:value={item.amount} placeholder="0.00" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <label for="item-{idx}-amount" class="text-xs text-slate-500 mb-1 block">Amount</label>
+                  <input id="item-{idx}-amount" type="number" step="0.01" bind:value={item.amount} placeholder="0.00" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label class="text-xs text-slate-500 mb-1 block">Type</label>
+                  <label for="item-{idx}-category" class="text-xs text-slate-500 mb-1 block">Type</label>
                   <CategorySelect
+                    id="item-{idx}-category"
                     type={item.type}
                     bind:value={item.category}
                     selectClass="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -134,12 +145,12 @@
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="text-xs text-slate-500 mb-1 block">Date</label>
-                  <input type="date" bind:value={item.date} class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <label for="item-{idx}-date" class="text-xs text-slate-500 mb-1 block">Date</label>
+                  <input id="item-{idx}-date" type="date" bind:value={item.date} class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label class="text-xs text-slate-500 mb-1 block">Note</label>
-                  <input type="text" bind:value={item.note} placeholder="Optional" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <label for="item-{idx}-note" class="text-xs text-slate-500 mb-1 block">Note</label>
+                  <input id="item-{idx}-note" type="text" bind:value={item.note} placeholder="Optional" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
               </div>
               <div class="flex gap-2 pt-1">

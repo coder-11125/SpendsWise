@@ -150,8 +150,8 @@
             {#if renamingSpaceId === space.id}
               <form onsubmit={(e) => { e.preventDefault(); saveSpaceRename(space.id); }} class="flex items-center gap-2 flex-1">
                 <input type="text" bind:value={spaceRenameDraft} class="flex-1 px-2 py-1 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                <button type="submit" class="text-emerald-600 hover:text-emerald-700"><i class="ph ph-check text-sm"></i></button>
-                <button type="button" onclick={() => renamingSpaceId = ''} class="text-slate-400 hover:text-slate-600"><i class="ph ph-x text-sm"></i></button>
+                <button type="submit" class="text-emerald-600 hover:text-emerald-700" aria-label="Confirm rename"><i class="ph ph-check text-sm"></i></button>
+                <button type="button" onclick={() => renamingSpaceId = ''} class="text-slate-400 hover:text-slate-600" aria-label="Cancel rename"><i class="ph ph-x text-sm"></i></button>
               </form>
             {:else}
               <div class="flex items-center gap-2">
@@ -177,8 +177,8 @@
                 {#if renamingMemberUserId === member.userId}
                   <form onsubmit={(e) => { e.preventDefault(); saveMemberRename(space.id); }} class="flex items-center gap-2 flex-1">
                     <input type="text" bind:value={memberRenameDraft} class="flex-1 px-2 py-1 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                    <button type="submit" class="text-emerald-600 hover:text-emerald-700"><i class="ph ph-check text-sm"></i></button>
-                    <button type="button" onclick={() => renamingMemberUserId = ''} class="text-slate-400 hover:text-slate-600"><i class="ph ph-x text-sm"></i></button>
+                    <button type="submit" class="text-emerald-600 hover:text-emerald-700" aria-label="Confirm rename"><i class="ph ph-check text-sm"></i></button>
+                    <button type="button" onclick={() => renamingMemberUserId = ''} class="text-slate-400 hover:text-slate-600" aria-label="Cancel rename"><i class="ph ph-x text-sm"></i></button>
                   </form>
                 {:else}
                   <span class="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-1.5">

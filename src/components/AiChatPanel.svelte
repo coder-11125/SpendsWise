@@ -1,27 +1,31 @@
 <script lang="ts">
   import { sendAiMessage, fetchAiQuota, loadExpenses } from '../lib/api.js';
-  import { getAiChats, getActiveAiChat, startNewAiChat, selectAiChat, setActiveAiChatMessages } from '../lib/state.svelte.js';
+  import { getAiChats, getActiveAiChat, startNewAiChat, selectAiChat, setActiveAiChatMessages, type AiChatMessage, type AiChat } from '../lib/state.svelte.js';
 
-  let { show = false, onclose, embedded = false } = $props();
+  let { show = false, onclose, embedded = false } = $props<{
+    show?: boolean;
+    onclose?: () => void;
+    embedded?: boolean;
+  }>();
 
   let active = $derived(embedded || show);
 
   let activeChat = $derived(getActiveAiChat());
-  let messages = $derived(activeChat.messages.length === 0
+  let messages = $derived<AiChatMessage[]>(activeChat.messages.length === 0
     ? [{ role: 'assistant', content: 'New conversation started. What would you like to know about your finances?' }]
     : activeChat.messages);
-  let recentChats = $derived(getAiChats());
+  let recentChats = $derived<AiChat[]>(getAiChats());
 
-  let input = $state('');
-  let sending = $state(false);
-  let weeklyRemaining = $state(115);
-  let cooldownUntil = $state(0);
-  let cooldownTimer = $state(0);
-  let cooldownInterval;
-  let showChatsMenu = $state(false);
+  let input = $state<string>('');
+  let sending = $state<boolean>(false);
+  let weeklyRemaining = $state<number>(115);
+  let cooldownUntil = $state<number>(0);
+  let cooldownTimer = $state<number>(0);
+  let cooldownInterval = $state<ReturnType<typeof setInterval> | null>(null);
+  let showChatsMenu = $state<boolean>(false);
 
-  let messagesEl;
-  let inputEl;
+  let messagesEl = $state<HTMLElement | null>(null);
+  let inputEl = $state<HTMLInputElement | null>(null);
 
   $effect(() => {
     if (active) {
@@ -44,7 +48,7 @@
     setTimeout(() => inputEl?.focus(), 100);
   }
 
-  function openChat(id) {
+  function openChat(id: string) {
     selectAiChat(id);
     showChatsMenu = false;
     setTimeout(() => inputEl?.focus(), 100);
@@ -56,7 +60,7 @@
     input = '';
     sending = true;
     const history = activeChat.messages;
-    const withUser = [...history, { role: 'user', content: text }];
+    const withUser: AiChatMessage[] = [...history, { role: 'user', content: text }];
     setActiveAiChatMessages([...withUser, { role: 'assistant', content: '...' }]);
     try {
       const res = await sendAiMessage(text, history);
@@ -64,7 +68,7 @@
       const reply = res.reply || 'Sorry, I could not process that.';
       setActiveAiChatMessages([...withUser, { role: 'assistant', content: reply }]);
       if (res.dataChanged) loadExpenses();
-    } catch (err) {
+    } catch (err: any) {
       const msg = err?.message || 'Network error. Please try again.';
       setActiveAiChatMessages([...withUser, { role: 'assistant', content: msg }]);
       if (err.status === 429 && err.retryAfter) {
@@ -78,19 +82,19 @@
 
   $effect(() => {
     if (cooldownUntil > Date.now()) {
-      cooldownInterval = setInterval(() => {
+      const interval = setInterval(() => {
         const remaining = Math.ceil(Math.max(0, cooldownUntil - Date.now()) / 1000);
         cooldownTimer = remaining;
         if (remaining <= 0) {
-          clearInterval(cooldownInterval);
+          clearInterval(interval);
           cooldownUntil = 0;
         }
       }, 1000);
-      return () => clearInterval(cooldownInterval);
+      return () => clearInterval(interval);
     }
   });
 
-  function handleKeydown(e) {
+  function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       send();
@@ -138,7 +142,7 @@
         </div>
       {/if}
       {#if !embedded}
-        <button onclick={() => onclose?.()} class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1">
+        <button onclick={() => onclose?.()} class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1" aria-label="Close chat">
           <i class="ph ph-x text-xl"></i>
         </button>
       {/if}

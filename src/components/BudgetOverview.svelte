@@ -7,7 +7,7 @@
   let budgetGoals = $derived(getBudgetGoals());
   let expense = $derived(getExpense());
   let currency = $derived(getCurrentCurrency());
-  let monthlySpend = $state({});
+  let monthlySpend = $state<Record<string, number>>({});
   let symbol = $derived(getCurrencySymbol(currency));
 
   $effect(() => {
@@ -19,7 +19,7 @@
   });
 
   let goalEntries = $derived(
-    Object.entries(budgetGoals).filter(([cat]) => monthlySpend[cat] !== undefined)
+    Object.entries(budgetGoals).filter(([cat]: [string, number]) => monthlySpend[cat] !== undefined)
   );
 
   let hasGoals = $derived(goalEntries.length > 0);
@@ -33,7 +33,7 @@
     </div>
     <div class="space-y-4">
       {#each goalEntries as [category, goal]}
-        {@const spent = monthlySpend[category] || 0}
+        {@const spent = monthlySpend[category] ?? 0}
         {@const percentage = Math.min((spent / goal) * 100, 100)}
         {@const isOver = spent > goal}
         <div>

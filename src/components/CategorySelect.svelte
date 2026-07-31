@@ -5,7 +5,7 @@
 
   let adding = $state(false);
   let newCategory = $state('');
-  let inputEl;
+  let inputEl = $state<HTMLInputElement | null>(null);
 
   let categories = $derived.by(() => {
     const cats = getAllCategories(type);
@@ -20,8 +20,8 @@
     value = '';
   }
 
-  function handleChange(e) {
-    const v = e.target.value;
+  function handleChange(e: Event) {
+    const v = (e.target as HTMLSelectElement).value;
     if (v === '__add__') {
       adding = true;
       newCategory = '';
@@ -41,7 +41,7 @@
     adding = false;
   }
 
-  function handleKeydown(e) {
+  function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter') {
       e.preventDefault();
       confirmAdd();

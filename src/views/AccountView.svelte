@@ -2,24 +2,25 @@
   import { untrack } from 'svelte';
   import { getExpense, getCurrentCurrency, setExpense, getBudgetGoals, setBudgetGoals, getCustomCategories, removeCustomCategory, getHiddenCategories, hideCategory, unhideCategory, getCurrentSpaceId, getSpaces, getUserId, confirmDialog } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
-  import { changePassword, deleteAllExpenses, getProfile, deleteSpace, logout } from '../lib/api.js';
+  import { changePassword, deleteAllExpenses, getProfile, deleteSpace, logout, uploadBulkExpenses, loadExpenses } from '../lib/api.js';
   import { calculateSummary } from '../lib/calculations.svelte.js';
   import { defaultExpenseCategories, defaultIncomeCategories } from '../lib/constants.js';
+  import type { Profile, Expense, Summary } from '../types.js';
 
-  let profile = $state(null);
-  let stats = $state({ income: 0, expenses: 0, balance: 0, expenseCount: 0, incomeCount: 0 });
-  let isDark = $state(document.documentElement.classList.contains('dark'));
-  let currentPassword = $state('');
-  let newPassword = $state('');
-  let confirmPassword = $state('');
-  let passwordMessage = $state('');
-  let passwordError = $state('');
-  let newGoalCategory = $state('');
-  let newGoalAmount = $state('');
-  let goalMessage = $state('');
-  let importResult = $state(null);
-  let isImporting = $state(false);
-  let isDeletingAll = $state(false);
+  let profile = $state<Profile | null>(null);
+  let stats = $state<Summary & { incomeCount: number; expenseCount: number }>({ income: 0, expenses: 0, balance: 0, expenseCount: 0, incomeCount: 0 });
+  let isDark = $state<boolean>(document.documentElement.classList.contains('dark'));
+  let currentPassword = $state<string>('');
+  let newPassword = $state<string>('');
+  let confirmPassword = $state<string>('');
+  let passwordMessage = $state<string>('');
+  let passwordError = $state<string>('');
+  let newGoalCategory = $state<string>('');
+  let newGoalAmount = $state<string>('');
+  let goalMessage = $state<string>('');
+  let importResult = $state<{ success: boolean; message: string } | null>(null);
+  let isImporting = $state<boolean>(false);
+  let isDeletingAll = $state<boolean>(false);
 
   async function loadProfile() {
     try {
@@ -77,7 +78,7 @@
       newPassword = '';
       confirmPassword = '';
     } catch (err) {
-      passwordError = err.message;
+      passwordError = err instanceof Error ? err.message : 'Unknown error';
     }
   }
 
@@ -90,7 +91,7 @@
       : ['type', 'amount', 'category', 'date', 'familyMember', 'note', 'currency'];
     const rows = expenses.map(e => headers.map(h => {
       const key = h === 'contributor' ? 'authorNickname' : h;
-      const val = e[key] || '';
+      const val = (e as Record<string, any>)[key] || '';
       return String(val).includes(',') ? `"${val}"` : val;
     }).join(','));
     const csv = [headers.join(','), ...rows].join('\n');
@@ -105,14 +106,15 @@
     URL.revokeObjectURL(url);
   }
 
-  let fileInput;
+  let fileInput = $state<HTMLInputElement | null>(null);
 
   function triggerImport() {
-    fileInput.click();
+    fileInput?.click();
   }
 
-  async function handleFileSelect(ev) {
-    const file = ev.target.files[0];
+  async function handleFileSelect(ev: Event) {
+    const target = ev.target as HTMLInputElement;
+    const file = target.files?.[0];
     if (!file) return;
     isImporting = true;
     importResult = null;
@@ -123,21 +125,22 @@
         importResult = { success: false, message: 'CSV file is empty or has no data rows.' };
         return;
       }
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const rows = lines.slice(1).filter(l => l.trim()).map(line => {
-        const values = line.split(',').map(v => v.trim());
-        const obj = {};
-        headers.forEach((h, i) => obj[h] = values[i] || '');
+      const headers = lines[0].split(',').map((h: string) => h.trim().toLowerCase());
+      const rows = lines.slice(1).filter((l: string) => l.trim()).map((line: string) => {
+        const values = line.split(',').map((v: string) => v.trim());
+        const obj: Record<string, string> = {};
+        headers.forEach((h: string, i: number) => obj[h] = values[i] || '');
         return obj;
       });
       const res = await uploadBulkExpenses(rows);
       await loadExpenses();
       importResult = { success: true, message: `Successfully imported ${res.count || rows.length} item(s).` };
     } catch (err) {
-      importResult = { success: false, message: err.message || 'Failed to import CSV.' };
+      const errorMessage = err instanceof Error ? err.message : 'Failed to import CSV.';
+      importResult = { success: false, message: errorMessage };
     } finally {
       isImporting = false;
-      ev.target.value = '';
+      target.value = '';
     }
   }
 
@@ -159,28 +162,29 @@
     goalMessage = 'Goal added.';
   }
 
-  function handleDeleteGoal(category) {
+  function handleDeleteGoal(category: string) {
     const goals = { ...getBudgetGoals() };
     delete goals[category];
     setBudgetGoals(goals);
   }
 
-  async function handleDeleteCategory(type, name) {
+  async function handleDeleteCategory(type: string, name: string) {
     if (!await confirmDialog(`Delete category "${name}"?`)) return;
     removeCustomCategory(type, name);
   }
 
-  function toggleHiddenCategory(type, name, hidden) {
+  function toggleHiddenCategory(type: string, name: string, hidden: boolean) {
     if (hidden) unhideCategory(type, name);
     else hideCategory(type, name);
   }
 
-  async function handleDeleteHub(spaceId, name) {
+  async function handleDeleteHub(spaceId: string, name: string) {
     if (!await confirmDialog(`Permanently delete "${name}" and all its shared expenses? This cannot be undone.`)) return;
     try {
       await deleteSpace(spaceId);
     } catch (err) {
-      alert('Failed to delete Hub: ' + err.message);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      alert('Failed to delete Hub: ' + errorMessage);
     }
   }
 
@@ -192,7 +196,8 @@
       await deleteAllExpenses();
       setExpense([]);
     } catch (err) {
-      alert('Failed to delete expenses: ' + err.message);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      alert('Failed to delete expenses: ' + errorMessage);
     } finally {
       isDeletingAll = false;
     }

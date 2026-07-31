@@ -16,7 +16,7 @@
     { filter: 'ai', icon: 'ph-chat-circle-dots', label: 'AI Assistant' },
   ];
 
-  function handleNav(filter) {
+  function handleNav(filter: string) {
     onnavigate?.(filter);
   }
 

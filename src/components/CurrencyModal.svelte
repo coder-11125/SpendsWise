@@ -10,7 +10,7 @@
   let filteredPopular = $derived(popularCurrencies.filter(c => c.toLowerCase().includes(search.toLowerCase())));
   let filteredAll = $derived(currencies.filter(c => c.toLowerCase().includes(search.toLowerCase())));
 
-  function select(currency) {
+  function select(currency: string) {
     setCurrentCurrency(currency);
     onclose?.();
   }

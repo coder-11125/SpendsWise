@@ -3,7 +3,7 @@
 </script>
 
 {#if result}
-  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in" onclick={(e) => { if (e.target === e.currentTarget) onclose?.(); }}>
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in" onclick={(e) => { if (e.target === e.currentTarget) onclose?.(); }} onkeydown={(e) => { if (e.key === 'Escape') onclose?.(); }} role="dialog" aria-modal="true" tabindex="-1">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
       <div class="flex items-center gap-3 mb-4">
         <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">

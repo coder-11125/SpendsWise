@@ -4,6 +4,7 @@
   import { addExpenseItem, getCurrentCurrency, getSpaces, getCurrentSpaceId } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
   import { compressImageToDataUrl } from '../lib/utils.js';
+  import type { Expense } from '../types.js';
   import CategorySelect from './CategorySelect.svelte';
   import BulkImportModal from './BulkImportModal.svelte';
 
@@ -11,7 +12,7 @@
 
   const currencySymbol = $derived(getCurrencySymbol(getCurrentCurrency()));
 
-  let type = $state('expense');
+  let type = $state<'income' | 'expense'>('expense');
   let amount = $state(0);
   let category = $state('');
   let date = $state(new Date().toISOString().split('T')[0]);
@@ -19,8 +20,8 @@
   let loading = $state(false);
   let error = $state('');
 
-  let dateInput = $state(null);
-  let fp = $state(null);
+  let dateInput = $state<HTMLInputElement | null>(null);
+  let fp = $state<any>(null);
 
   let spaces = $derived(getSpaces());
   let currentSpaceId = $derived(getCurrentSpaceId());
@@ -29,7 +30,7 @@
   // CSV import
   let csvImporting = $state(false);
   let csvResult = $state<{ success: boolean; message: string } | null>(null);
-  let csvFileInput: HTMLInputElement;
+  let csvFileInput = $state<HTMLInputElement | null>(null);
 
   // Receipt / OCR import
   let receiptProcessing = $state(false);
@@ -37,10 +38,10 @@
   let parsedReceipts = $state<any[]>([]);
   let showBulkModal = $state(false);
   let ocrPro = $state(false);
-  let receiptInput: HTMLInputElement;
+  let receiptInput = $state<HTMLInputElement | null>(null);
 
-  async function handleSpaceChange(e) {
-    const value = e.target.value;
+  async function handleSpaceChange(e: Event) {
+    const value = (e.target as HTMLSelectElement).value;
     switchingSpace = true;
     try {
       await switchSpace(value || null);
@@ -52,7 +53,7 @@
   $effect(() => {
     if (dateInput && !fp) {
       import('flatpickr').then((mod) => {
-        fp = mod.default(dateInput, {
+        fp = mod.default(dateInput as HTMLElement, {
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
@@ -63,7 +64,7 @@
     }
   });
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: Event) {
     e.preventDefault();
     error = '';
     if (!type || Number.isNaN(amount) || !category || !date) {
@@ -96,8 +97,9 @@
     csvFileInput?.click();
   }
 
-  async function handleCsvFileSelect(ev) {
-    const file = ev.target.files[0];
+  async function handleCsvFileSelect(ev: Event) {
+    const target = ev.target as HTMLInputElement;
+    const file = target.files?.[0];
     if (!file) return;
     csvImporting = true;
     csvResult = null;
@@ -108,32 +110,34 @@
         csvResult = { success: false, message: 'CSV file is empty or has no data rows.' };
         return;
       }
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const rows = lines.slice(1).filter(l => l.trim()).map(line => {
-        const values = line.split(',').map(v => v.trim());
-        const obj = {};
-        headers.forEach((h, i) => obj[h] = values[i] || '');
+      const headers = lines[0].split(',').map((h: string) => h.trim().toLowerCase());
+      const rows = lines.slice(1).filter((l: string) => l.trim()).map((line: string) => {
+        const values = line.split(',').map((v: string) => v.trim());
+        const obj: Record<string, string> = {};
+        headers.forEach((h: string, i: number) => obj[h] = values[i] || '');
         return obj;
       });
       const res = await uploadBulkExpenses(rows);
       await loadExpenses();
       csvResult = { success: true, message: `Successfully imported ${res.count || rows.length} item(s).` };
     } catch (err) {
-      csvResult = { success: false, message: err.message || 'Failed to import CSV.' };
+      const errorMessage = err instanceof Error ? err.message : 'Failed to import CSV.';
+      csvResult = { success: false, message: errorMessage };
     } finally {
       csvImporting = false;
-      ev.target.value = '';
+      target.value = '';
     }
   }
 
   // Receipt import handlers
-  async function handleBulkReceiptUpload(e) {
-    const files = Array.from(e.target.files ?? []);
+  async function handleBulkReceiptUpload(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const files = Array.from(target.files ?? []);
     if (!files.length) return;
     receiptProcessing = true;
     receiptProgress = `Compressing ${files.length} receipt${files.length > 1 ? 's' : ''}...`;
     const dataUrls = await Promise.all(
-      files.map((f) => compressImageToDataUrl(f, 1920, 0.7))
+      files.map((f: File) => compressImageToDataUrl(f, 1920, 0.7))
     );
     receiptProgress = `Processing ${dataUrls.length} receipt${dataUrls.length > 1 ? 's' : ''}...`;
     try {
@@ -165,14 +169,14 @@
       alert('Failed to process receipts. Please try again.');
     }
     receiptProcessing = false;
-    e.target.value = '';
+    target.value = '';
   }
 
   function handleBulkSave(saved: any[]) {
     showBulkModal = false;
     parsedReceipts = [];
     for (const item of saved) {
-      addExpenseItem(item);
+      addExpenseItem(item as Expense);
     }
   }
 
@@ -182,11 +186,11 @@
 </script>
 
 {#if show}
-  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in" onclick={(e) => { if (e.target === e.currentTarget) onclose?.(); }}>
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in" onclick={(e) => { if (e.target === e.currentTarget) onclose?.(); }} onkeydown={(e) => { if (e.key === 'Escape') onclose?.(); }} role="dialog" aria-modal="true" tabindex="-1">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-bold text-slate-800">Quick Add</h2>
-        <button onclick={() => onclose?.()} class="text-slate-400 hover:text-slate-600 transition-colors">
+        <button onclick={() => onclose?.()} class="text-slate-400 hover:text-slate-600 transition-colors" aria-label="Close modal">
           <i class="ph ph-x text-xl"></i>
         </button>
       </div>

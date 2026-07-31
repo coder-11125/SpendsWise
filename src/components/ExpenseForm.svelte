@@ -1,40 +1,40 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import flatpickr from 'flatpickr';
   import { saveTransaction, parseReceiptsBulk, switchSpace, uploadBulkExpenses, loadExpenses } from '../lib/api.js';
   import { getAllCategories, getSpaces, getCurrentSpaceId } from '../lib/state.svelte.js';
   import { compressImageToDataUrl } from '../lib/utils.js';
+  import type { Expense, Recurrence } from '../types.js';
   import BulkImportModal from './BulkImportModal.svelte';
   import CategorySelect from './CategorySelect.svelte';
 
-  let { onadd } = $props();
+  let { onadd } = $props<{ onadd?: (item: Expense) => void }>();
 
-  let type = $state('expense');
-  let amount = $state('');
-  let category = $state('Food & Dining');
-  let date = $state(new Date().toISOString().split('T')[0]);
-  let note = $state('');
-  let submitting = $state(false);
-  let fpInstance = $state(null);
-  let endDateFp = $state(null);
-  let dateInputEl;
-  let endDateInputEl;
+  let type = $state<'income' | 'expense'>('expense');
+  let amount = $state<string>('');
+  let category = $state<string>('Food & Dining');
+  let date = $state<string>(new Date().toISOString().split('T')[0]);
+  let note = $state<string>('');
+  let submitting = $state<boolean>(false);
+  let fpInstance = $state<any>(null);
+  let endDateFp = $state<any>(null);
+  let dateInputEl = $state<HTMLInputElement | null>(null);
+  let endDateInputEl = $state<HTMLInputElement | null>(null);
 
   // Recurrence state
-  let isRecurring = $state(false);
-  let recurrenceFrequency = $state('monthly');
-  let recurrenceEndDate = $state('');
+  let isRecurring = $state<boolean>(false);
+  let recurrenceFrequency = $state<'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'>('monthly');
+  let recurrenceEndDate = $state<string>('');
 
-  let receiptProcessing = $state(false);
-  let receiptProgress = $state('');
+  let receiptProcessing = $state<boolean>(false);
+  let receiptProgress = $state<string>('');
   let parsedReceipts = $state<any[]>([]);
-  let showBulkModal = $state(false);
-  let ocrPro = $state(false);
+  let showBulkModal = $state<boolean>(false);
+  let ocrPro = $state<boolean>(false);
 
   let categories = $derived(getAllCategories(type));
   let spaces = $derived(getSpaces());
   let currentSpaceId = $derived(getCurrentSpaceId());
-  let switchingSpace = $state(false);
+  let switchingSpace = $state<boolean>(false);
 
   $effect(() => {
     if (categories.length > 0 && !categories.includes(category)) {
@@ -54,16 +54,18 @@
 
   onMount(() => {
     if (dateInputEl) {
-      fpInstance = flatpickr(dateInputEl, {
-        dateFormat: 'Y-m-d',
-        altInput: true,
-        altFormat: 'd/m/Y',
-        defaultDate: date,
-        onChange: (selectedDates) => {
-          if (selectedDates[0]) {
-            date = selectedDates[0].toISOString().split('T')[0];
+      import('flatpickr').then((mod) => {
+        fpInstance = mod.default(dateInputEl as HTMLElement, {
+          dateFormat: 'Y-m-d',
+          altInput: true,
+          altFormat: 'd/m/Y',
+          defaultDate: date,
+          onChange: (selectedDates: Date[]) => {
+            if (selectedDates[0]) {
+              date = selectedDates[0].toISOString().split('T')[0];
+            }
           }
-        }
+        });
       });
     }
     return () => {
@@ -75,13 +77,13 @@
   $effect(() => {
     if (endDateInputEl && isRecurring && !endDateFp) {
       import('flatpickr').then((mod) => {
-        endDateFp = mod.default(endDateInputEl, {
+        endDateFp = mod.default(endDateInputEl as HTMLElement, {
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
           disableMobile: true,
           defaultDate: recurrenceEndDate || undefined,
-          onChange: (selectedDates) => {
+          onChange: (selectedDates: Date[]) => {
             if (selectedDates[0]) {
               recurrenceEndDate = selectedDates[0].toISOString().split('T')[0];
             }
@@ -95,7 +97,7 @@
     if (!type || !amount || !category || !date) return;
     submitting = true;
 
-    let recurrence = null;
+    let recurrence: Recurrence | null = null;
     if (isRecurring) {
       recurrence = {
         frequency: recurrenceFrequency,
@@ -126,25 +128,26 @@
     }
   }
 
-  async function handleBulkReceiptUpload(e) {
-    const files = Array.from(e.target.files ?? []);
+  async function handleBulkReceiptUpload(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const files = Array.from(target.files ?? []);
     if (!files.length) return;
     receiptProcessing = true;
     receiptProgress = `Compressing ${files.length} receipt${files.length > 1 ? 's' : ''}...`;
     const dataUrls = await Promise.all(
-      files.map((f) => compressImageToDataUrl(f, 1920, 0.7))
+      files.map((f: File) => compressImageToDataUrl(f, 1920, 0.7))
     );
     receiptProgress = `Processing ${dataUrls.length} receipt${dataUrls.length > 1 ? 's' : ''}...`;
     try {
       const data = await parseReceiptsBulk(dataUrls, ocrPro);
       receiptProgress = '';
-      const flat: any[] = [];
+      const flat: Array<{ type: 'income' | 'expense'; amount: number; category: string; date: string; note: string }> = [];
       const today = new Date().toISOString().split('T')[0];
       for (const r of data.results ?? []) {
         if (r.error) continue;
         for (const item of r.items ?? []) {
           flat.push({
-            type: item.type || 'expense',
+            type: (item.type === 'income' || item.type === 'expense') ? item.type : 'expense',
             amount: item.amount,
             category: item.category || 'Other',
             date: r.date || today,
@@ -164,7 +167,7 @@
       alert('Failed to process receipts. Please try again.');
     }
     receiptProcessing = false;
-    e.target.value = '';
+    target.value = '';
   }
 
   // CSV import handlers
@@ -185,18 +188,19 @@
         csvResult = { success: false, message: 'CSV file is empty or has no data rows.' };
         return;
       }
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const rows = lines.slice(1).filter(l => l.trim()).map(line => {
-        const values = line.split(',').map(v => v.trim());
+      const headers = lines[0].split(',').map((h: string) => h.trim().toLowerCase());
+      const rows = lines.slice(1).filter((l: string) => l.trim()).map((line: string) => {
+        const values = line.split(',').map((v: string) => v.trim());
         const obj: Record<string, string> = {};
-        headers.forEach((h, i) => obj[h] = values[i] || '');
+        headers.forEach((h: string, i: number) => obj[h] = values[i] || '');
         return obj;
       });
       const res = await uploadBulkExpenses(rows);
       await loadExpenses();
       csvResult = { success: true, message: `Successfully imported ${res.count || rows.length} item(s).` };
-    } catch (err: any) {
-      csvResult = { success: false, message: err.message || 'Failed to import CSV.' };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to import CSV.';
+      csvResult = { success: false, message: errorMessage };
     } finally {
       csvImporting = false;
       input.value = '';
@@ -207,16 +211,16 @@
     showBulkModal = false;
     parsedReceipts = [];
     for (const item of saved) {
-      onadd?.(item);
+      onadd?.(item as Expense);
     }
   }
 
   // CSV import
-  let csvImporting = $state(false);
+  let csvImporting = $state<boolean>(false);
   let csvResult = $state<{ success: boolean; message: string } | null>(null);
-  let csvFileInput: HTMLInputElement;
+  let csvFileInput = $state<HTMLInputElement | null>(null);
 
-  let receiptInput;
+  let receiptInput = $state<HTMLInputElement | null>(null);
 
   function triggerReceiptUpload() {
     receiptInput?.click();
@@ -242,8 +246,9 @@
 
   {#if spaces.length > 0}
     <div class="mb-4">
-      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Space</label>
+      <label for="expense-space" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Space</label>
       <select
+        id="expense-space"
         value={currentSpaceId ?? ''}
         onchange={handleSpaceChange}
         disabled={switchingSpace}
@@ -259,13 +264,14 @@
 
   <div class="space-y-4">
     <div>
-      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Amount</label>
-      <input type="number" step="0.01" bind:value={amount} placeholder="0.00" class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />
+      <label for="expense-amount" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Amount</label>
+      <input id="expense-amount" type="number" step="0.01" bind:value={amount} placeholder="0.00" class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Type</label>
+      <label for="expense-category" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Type</label>
       <CategorySelect
+        id="expense-category"
         type={type}
         bind:value={category}
         selectClass="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none"
@@ -273,13 +279,13 @@
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date</label>
-      <input bind:this={dateInputEl} type="text" bind:value={date} class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />
+      <label for="expense-date" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date</label>
+      <input id="expense-date" bind:this={dateInputEl} type="text" bind:value={date} class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Note</label>
-      <input type="text" bind:value={note} placeholder="Optional note..." class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />
+      <label for="expense-note" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Note</label>
+      <input id="expense-note" type="text" bind:value={note} placeholder="Optional note..." class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />
     </div>
 
     <!-- Recurrence Toggle -->
@@ -289,7 +295,7 @@
           <i class="ph ph-repeat text-blue-600"></i>
           <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Recurring Transaction</span>
         </div>
-        <button type="button" onclick={() => isRecurring = !isRecurring}
+        <button type="button" onclick={() => isRecurring = !isRecurring} aria-label="Toggle recurring transaction"
           class="relative w-10 h-5 rounded-full transition-colors {isRecurring ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}">
           <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform {isRecurring ? 'translate-x-5' : ''}"></div>
         </button>
@@ -297,14 +303,14 @@
       {#if isRecurring}
         <div class="space-y-3 mt-3 animate-fade-in">
           <div>
-            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Frequency</label>
+            <label for="expense-frequency" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Frequency</label>
             <div class="flex gap-1">
               {#each [
-                { v: 'daily', l: 'Daily' },
-                { v: 'weekly', l: 'Weekly' },
-                { v: 'biweekly', l: 'Bi-weekly' },
-                { v: 'monthly', l: 'Monthly' },
-                { v: 'yearly', l: 'Yearly' }
+                { v: 'daily' as const, l: 'Daily' },
+                { v: 'weekly' as const, l: 'Weekly' },
+                { v: 'biweekly' as const, l: 'Bi-weekly' },
+                { v: 'monthly' as const, l: 'Monthly' },
+                { v: 'yearly' as const, l: 'Yearly' }
               ] as opt}
                 <button type="button" onclick={() => recurrenceFrequency = opt.v}
                   class="px-2.5 py-1 text-xs rounded-md font-medium transition-colors {recurrenceFrequency === opt.v ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-500'}">
@@ -314,8 +320,8 @@
             </div>
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">End Date (optional)</label>
-            <input bind:this={endDateInputEl} type="text" bind:value={recurrenceEndDate} placeholder="No end date"
+            <label for="expense-enddate" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">End Date (optional)</label>
+            <input id="expense-enddate" bind:this={endDateInputEl} type="text" bind:value={recurrenceEndDate} placeholder="No end date"
               class="input-field w-full px-3 py-1.5 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-md text-slate-800 dark:text-slate-100 text-xs focus:outline-none" />
           </div>
         </div>

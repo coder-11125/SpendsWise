@@ -3,11 +3,16 @@
   import { updateExpenseOnServer } from '../lib/api.js';
   import { updateExpenseItem, getCurrentCurrency } from '../lib/state.svelte.js';
   import { categoryIcons } from '../lib/constants.js';
+  import type { Expense, Recurrence } from '../types.js';
   import CategorySelect from './CategorySelect.svelte';
 
-  let { expenseItem, onclose, onsaved } = $props();
+  let { expenseItem, onclose, onsaved } = $props<{
+    expenseItem: Expense | null;
+    onclose?: () => void;
+    onsaved?: () => void;
+  }>();
 
-  let type = $state('expense');
+  let type = $state<'income' | 'expense'>('expense');
   let amount = $state(0);
   let category = $state('');
   let date = $state('');
@@ -17,13 +22,13 @@
 
   // Recurrence state
   let hasRecurrence = $state(false);
-  let recurrenceFrequency = $state('monthly');
+  let recurrenceFrequency = $state<'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'>('monthly');
   let recurrenceEndDate = $state('');
 
-  let dateInput = $state(null);
-  let endDateInput = $state(null);
-  let fp = $state(null);
-  let endDateFp = $state(null);
+  let dateInput = $state<HTMLInputElement | null>(null);
+  let endDateInput = $state<HTMLInputElement | null>(null);
+  let fp = $state<any>(null);
+  let endDateFp = $state<any>(null);
 
   $effect(() => {
     if (expenseItem) {
@@ -42,7 +47,7 @@
   $effect(() => {
     if (dateInput && !fp) {
       import('flatpickr').then((mod) => {
-        fp = mod.default(dateInput, {
+        fp = mod.default(dateInput as HTMLElement, {
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
@@ -53,13 +58,13 @@
     }
     if (endDateInput && hasRecurrence && !endDateFp) {
       import('flatpickr').then((mod) => {
-        endDateFp = mod.default(endDateInput, {
+        endDateFp = mod.default(endDateInput as HTMLElement, {
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
           disableMobile: true,
           defaultDate: recurrenceEndDate || undefined,
-          onChange: (selectedDates) => {
+          onChange: (selectedDates: Date[]) => {
             if (selectedDates[0]) {
               recurrenceEndDate = selectedDates[0].toISOString().split('T')[0];
             }
@@ -69,7 +74,7 @@
     }
   });
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: Event) {
     e.preventDefault();
     if (!expenseItem) return;
     error = '';
@@ -79,7 +84,7 @@
     }
     loading = true;
     try {
-      let recurrence = undefined;
+      let recurrence: Recurrence | null | undefined = undefined;
       if (hasRecurrence) {
         recurrence = {
           frequency: recurrenceFrequency,
@@ -99,7 +104,7 @@
       updateExpenseItem(updated);
       onsaved?.();
     } catch (err) {
-      error = err.message;
+      error = err instanceof Error ? err.message : 'Unknown error';
     } finally {
       loading = false;
     }
@@ -185,7 +190,7 @@
               <i class="ph ph-repeat text-blue-600"></i>
               <span class="text-sm font-medium text-slate-700">Recurring Transaction</span>
             </div>
-            <button type="button" onclick={() => hasRecurrence = !hasRecurrence}
+            <button type="button" onclick={() => hasRecurrence = !hasRecurrence} aria-label="Toggle recurring transaction"
               class="relative w-10 h-5 rounded-full transition-colors {hasRecurrence ? 'bg-blue-600' : 'bg-slate-300'}">
               <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform {hasRecurrence ? 'translate-x-5' : ''}"></div>
             </button>
@@ -193,14 +198,14 @@
           {#if hasRecurrence}
             <div class="space-y-3 mt-3 animate-fade-in">
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-1">Frequency</label>
+                <label for="edit-frequency" class="block text-xs font-medium text-slate-500 mb-1">Frequency</label>
                 <div class="flex gap-1">
                   {#each [
-                    { v: 'daily', l: 'Daily' },
-                    { v: 'weekly', l: 'Weekly' },
-                    { v: 'biweekly', l: 'Bi-weekly' },
-                    { v: 'monthly', l: 'Monthly' },
-                    { v: 'yearly', l: 'Yearly' }
+                    { v: 'daily' as const, l: 'Daily' },
+                    { v: 'weekly' as const, l: 'Weekly' },
+                    { v: 'biweekly' as const, l: 'Bi-weekly' },
+                    { v: 'monthly' as const, l: 'Monthly' },
+                    { v: 'yearly' as const, l: 'Yearly' }
                   ] as opt}
                     <button type="button" onclick={() => recurrenceFrequency = opt.v}
                       class="px-2.5 py-1 text-xs rounded-md font-medium transition-colors {recurrenceFrequency === opt.v ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'}">
@@ -210,8 +215,8 @@
                 </div>
               </div>
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-1">End Date (optional)</label>
-                <input bind:this={endDateInput} type="text" bind:value={recurrenceEndDate} placeholder="No end date"
+                <label for="edit-enddate" class="block text-xs font-medium text-slate-500 mb-1">End Date (optional)</label>
+                <input id="edit-enddate" bind:this={endDateInput} type="text" bind:value={recurrenceEndDate} placeholder="No end date"
                   class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md text-slate-800 text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
             </div>

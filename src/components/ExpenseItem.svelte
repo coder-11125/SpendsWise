@@ -21,9 +21,11 @@
     }
   });
 
-  const iconName = options.useTypeIcon
-    ? (item.type === 'income' ? 'ph-trend-up' : 'ph-trend-down')
-    : (categoryIcons[item.category] || categoryIcons['Other']);
+  const iconName = $derived(
+    options.useTypeIcon
+      ? (item.type === 'income' ? 'ph-trend-up' : 'ph-trend-down')
+      : (categoryIcons[item.category] || categoryIcons['Other'])
+  );
 
   const frequencyLabels: Record<string, string> = {
     daily: 'Daily',
@@ -77,10 +79,10 @@
         {/if}
       </p>
     </div>
-    <button onclick={() => onedit?.(item)} class="text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+    <button onclick={() => onedit?.(item)} class="text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" aria-label="Edit">
       <i class="ph ph-pencil-simple text-sm"></i>
     </button>
-    <button onclick={() => ondelete?.(item.id)} class="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
+    <button onclick={() => ondelete?.(item.id)} class="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors" aria-label="Delete">
       <i class="ph ph-trash text-sm"></i>
     </button>
   </div>

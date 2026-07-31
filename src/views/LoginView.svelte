@@ -8,7 +8,7 @@
   let error = $state('');
   let loading = $state(false);
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: Event) {
     e.preventDefault();
     error = '';
     if (!email || !password) {
@@ -21,7 +21,7 @@
       await showApp(data.user.email, data.user.id);
       navigate('/dashboard');
     } catch (err) {
-      error = err.message;
+      error = err instanceof Error ? err.message : 'Unknown error';
     } finally {
       loading = false;
     }

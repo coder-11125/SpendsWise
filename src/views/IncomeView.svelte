@@ -4,17 +4,18 @@
   import { calculateIncomeSummary, calculateMemberBreakdown } from '../lib/calculations.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
   import { deleteExpenseOnServer } from '../lib/api.js';
+  import type { Expense, CategoryData } from '../types.js';
   import ExpenseItem from '../components/ExpenseItem.svelte';
   import MemberBreakdown from '../components/MemberBreakdown.svelte';
 
-  let summary = $state({ total: 0, count: 0, average: 0 });
-  let incomeItems = $state([]);
-  let displayedItems = $state([]);
-  let searchQuery = $state('');
-  let sortBy = $state('date');
-  let sortDir = $state('desc');
-  let memberData = $state([]);
-  let memberTotal = $state(0);
+  let summary = $state<{ total: number; count: number; average: number }>({ total: 0, count: 0, average: 0 });
+  let incomeItems = $state<Expense[]>([]);
+  let displayedItems = $state<Expense[]>([]);
+  let searchQuery = $state<string>('');
+  let sortBy = $state<'date' | 'amount' | 'category'>('date');
+  let sortDir = $state<'asc' | 'desc'>('desc');
+  let memberData = $state<CategoryData[]>([]);
+  let memberTotal = $state<number>(0);
   let inSpace = $derived(!!getCurrentSpaceId());
 
   async function refresh() {
@@ -36,10 +37,10 @@
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       items = items.filter(i =>
-        (i.category && i.category.toLowerCase().includes(q)) ||
-        (i.note && i.note.toLowerCase().includes(q)) ||
-        (i.familyMember && i.familyMember.toLowerCase().includes(q)) ||
-        (i.authorNickname && i.authorNickname.toLowerCase().includes(q))
+        (i.category?.toLowerCase().includes(q)) ||
+        (i.note?.toLowerCase().includes(q)) ||
+        (i.familyMember?.toLowerCase().includes(q)) ||
+        (i.authorNickname?.toLowerCase().includes(q))
       );
     }
 
@@ -58,7 +59,7 @@
     displayedItems = items;
   }
 
-  let cancelled = $state(false);
+  let cancelled = $state<boolean>(false);
 
   $effect(() => {
     cancelled = false;
@@ -75,7 +76,7 @@
     applyFilters();
   });
 
-  function toggleSort(field) {
+  function toggleSort(field: 'date' | 'amount' | 'category') {
     if (sortBy === field) {
       sortDir = sortDir === 'asc' ? 'desc' : 'asc';
     } else {
@@ -84,12 +85,12 @@
     }
   }
 
-  function handleEdit(item) {
-    const ev = new CustomEvent('edit-income', { detail: item });
+  function handleEdit(item: Expense) {
+    const ev = new CustomEvent<Expense>('edit-income', { detail: item });
     window.dispatchEvent(ev);
   }
 
-  async function handleDelete(id) {
+  async function handleDelete(id: string) {
     if (await confirmDialog('Delete this income entry?')) {
       const deleted = await deleteExpenseOnServer(id);
       if (deleted) {
@@ -132,7 +133,7 @@
             class="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div class="flex gap-1">
-          {#each [{k:'date',l:'Date'},{k:'amount',l:'Amount'}] as opt}
+          {#each [{k:'date' as const,l:'Date'},{k:'amount' as const,l:'Amount'}] as opt}
             <button onclick={() => toggleSort(opt.k)}
               class="px-3 py-2 text-xs rounded-lg font-medium transition-colors {sortBy === opt.k ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}">
               {opt.l}

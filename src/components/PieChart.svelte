@@ -1,11 +1,16 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { renderPieChart } from '../lib/charts.js';
+  import type { CategoryData } from '../types.js';
 
-  let { categoryData = [], total = 0, currency = 'USD' } = $props();
+  let { categoryData = [], total = 0, currency = 'USD' } = $props<{
+    categoryData?: CategoryData[];
+    total?: number;
+    currency?: string;
+  }>();
 
-  let canvasEl;
-  let legendHtml = $state('');
+  let canvasEl = $state<HTMLCanvasElement | null>(null);
+  let legendHtml = $state<string>('');
 
   function draw() {
     if (!canvasEl) return;

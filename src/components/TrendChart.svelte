@@ -1,16 +1,25 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { renderTrendChart } from '../lib/charts.js';
+  import type { TrendPoint } from '../types.js';
 
-  let { points = [], total = 0, average = 0, periodLabel = '', currency = 'USD', range = undefined, onRangeChange = undefined } = $props();
+  let { points = [], total = 0, average = 0, periodLabel = '', currency = 'USD', range = undefined, onRangeChange = undefined } = $props<{
+    points?: TrendPoint[];
+    total?: number;
+    average?: number;
+    periodLabel?: string;
+    currency?: string;
+    range?: string;
+    onRangeChange?: (r: string) => void;
+  }>();
 
   const rangeOptions = [{v:'day',l:'Day'},{v:'week',l:'Week'},{v:'month',l:'Month'},{v:'all',l:'All'}];
 
-  let canvasEl;
-  let label = $state('');
-  let totalText = $state('');
-  let avgText = $state('');
-  let isEmpty = $state(true);
+  let canvasEl = $state<HTMLCanvasElement | null>(null);
+  let label = $state<string>('');
+  let totalText = $state<string>('');
+  let avgText = $state<string>('');
+  let isEmpty = $state<boolean>(true);
 
   function draw() {
     if (!canvasEl) return;

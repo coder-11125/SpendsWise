@@ -5,7 +5,7 @@
 
   let symbol = $derived(getCurrencySymbol(currency));
 
-  function formatAmount(amount, preserveSign = false) {
+  function formatAmount(amount: number, preserveSign = false) {
     const sign = preserveSign && amount < 0 ? '-' : '';
     return `${sign}${symbol}${Math.abs(amount).toFixed(2)}`;
   }

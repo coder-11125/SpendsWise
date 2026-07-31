@@ -3,6 +3,7 @@
   import { fetchCsrfToken, checkSession } from './lib/api.js';
   import { getIsLoggedIn, getAuthChecking, setAuthChecking, getCurrentCurrency, initRouter, getCurrentView, navigate } from './lib/state.svelte.js';
   import { getCurrencySymbol } from './lib/currency.js';
+  import type { Expense } from './types.js';
   import Sidebar from './components/Sidebar.svelte';
   import BottomNav from './components/BottomNav.svelte';
   import Header from './components/Header.svelte';
@@ -10,28 +11,28 @@
   import LoginView from './views/LoginView.svelte';
   import ConfirmModal from './components/ConfirmModal.svelte';
 
-  let sidebarCollapsed = $state(typeof localStorage !== 'undefined' && localStorage.getItem('sw_sidebar_collapsed') === 'true');
-  let editingItem = $state(null);
-  let showCurrencyModal = $state(false);
-  let showMobileQuickAdd = $state(false);
-  let showAiChat = $state(false);
-  let importResult = $state(null);
-  let deleteAllModalOpen = $state(false);
+  let sidebarCollapsed = $state<boolean>(typeof localStorage !== 'undefined' && localStorage.getItem('sw_sidebar_collapsed') === 'true');
+  let editingItem = $state<Expense | null>(null);
+  let showCurrencyModal = $state<boolean>(false);
+  let showMobileQuickAdd = $state<boolean>(false);
+  let showAiChat = $state<boolean>(false);
+  let importResult = $state<any>(null);
+  let deleteAllModalOpen = $state<boolean>(false);
 
   // Views/modals beyond the dashboard are loaded on demand so the initial
   // bundle only pays for what's shown on first paint. Each loader result is
   // cached in its slot so re-opening/re-navigating doesn't re-fetch.
-  let IncomeView = $state(null);
-  let ExpenseView = $state(null);
-  let AccountView = $state(null);
-  let SummariesView = $state(null);
-  let SpacesView = $state(null);
-  let AiChatPanel = $state(null);
-  let EditModal = $state(null);
-  let CurrencyModal = $state(null);
-  let ImportModal = $state(null);
-  let DeleteAllModal = $state(null);
-  let MobileQuickAdd = $state(null);
+  let IncomeView = $state<any>(null);
+  let ExpenseView = $state<any>(null);
+  let AccountView = $state<any>(null);
+  let SummariesView = $state<any>(null);
+  let SpacesView = $state<any>(null);
+  let AiChatPanel = $state<any>(null);
+  let EditModal = $state<any>(null);
+  let CurrencyModal = $state<any>(null);
+  let ImportModal = $state<any>(null);
+  let DeleteAllModal = $state<any>(null);
+  let MobileQuickAdd = $state<any>(null);
 
   $effect(() => {
     if (view === 'income' && !IncomeView) import('./views/IncomeView.svelte').then(m => IncomeView = m.default);
@@ -49,7 +50,7 @@
   $effect(() => { if (showMobileQuickAdd && !MobileQuickAdd) import('./components/MobileQuickAdd.svelte').then(m => MobileQuickAdd = m.default); });
   $effect(() => { if (showAiChat && !AiChatPanel) import('./components/AiChatPanel.svelte').then(m => AiChatPanel = m.default); });
 
-  function handleNavigate(filter) {
+  function handleNavigate(filter: string) {
     navigate('/' + filter);
   }
 
@@ -58,19 +59,20 @@
     localStorage.setItem('sw_sidebar_collapsed', String(sidebarCollapsed));
   }
 
-  function handleEditItem(e) {
+  function handleEditItem(e: CustomEvent) {
     editingItem = e.detail;
   }
 
   $effect(() => {
     if (typeof window !== 'undefined') {
-      window.addEventListener('edit-expense', handleEditItem);
-      window.addEventListener('edit-income', handleEditItem);
-      window.addEventListener('edit-item', handleEditItem);
+      const listener = (e: Event) => handleEditItem(e as CustomEvent<Expense>);
+      window.addEventListener('edit-expense', listener as EventListener);
+      window.addEventListener('edit-income', listener as EventListener);
+      window.addEventListener('edit-item', listener as EventListener);
       return () => {
-        window.removeEventListener('edit-expense', handleEditItem);
-        window.removeEventListener('edit-income', handleEditItem);
-        window.removeEventListener('edit-item', handleEditItem);
+        window.removeEventListener('edit-expense', listener as EventListener);
+        window.removeEventListener('edit-income', listener as EventListener);
+        window.removeEventListener('edit-item', listener as EventListener);
       };
     }
   });
