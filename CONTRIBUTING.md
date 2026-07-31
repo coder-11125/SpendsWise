@@ -136,7 +136,9 @@ npm run dev                  # Vite dev server, http://localhost:5173, proxies /
 | Backend dev server (hot reload) | `cd server && npm run dev` |
 | Compile server TypeScript | `cd server && npm run build` |
 | Run compiled server | `cd server && npm start` |
-| Full CI suite (run before every commit) | `npm run build && npx tsc --noEmit && cd server && npm run build` |
+| Run all tests (client) | `npm test` |
+| Run all tests (server) | `cd server && npm test` |
+| Full CI suite (run before every commit) | `npm run build && npx tsc --noEmit && npm test && cd server && npm run build && npx tsc -p tsconfig.test.json --noEmit && npm test` |
 
 ### Pre-commit checklist
 
@@ -145,9 +147,20 @@ Before every commit, run the full CI suite and verify everything passes:
 ```bash
 npm run build                  # client build (vite)
 npx tsc --noEmit               # client type check
+npm test                       # client unit tests (vitest + jsdom)
 cd server && npm run build     # server type check + compile
+npx tsc -p tsconfig.test.json --noEmit   # server test type check
+npm test                       # server integration tests (vitest + supertest + in-memory MongoDB)
 cd ..                          # back to root
 ```
+
+### Testing
+
+- **Client** (`src/**/*.test.ts`): unit tests for pure logic — currency conversion, summary calculations, date/trend helpers, and chart rendering. Run with `npm test` from the root (Vitest + jsdom).
+- **Server** (`server/test/**/*.test.ts`): route and middleware integration tests using Vitest + Supertest against a real in-memory MongoDB (`mongodb-memory-server`). No external services or credentials are needed; the in-memory server binary is pinned to MongoDB 6.0.19 (7.x requires AVX2) and cached in `server/.mongodb-binaries` (git-ignored).
+- Server tests run sequentially in a single worker (`fileParallelism: false`) so exactly one in-memory MongoDB is alive at a time.
+- The full-app test (`server/test/app.test.ts`) must stay alphabetically first: it boots the Express app after pointing `MONGODB_URI` at the in-memory server, and `src/config.ts` freezes its env at first import. Don't add static imports of `src/**` modules to that file (import them dynamically inside hooks/tests) or config will load with the placeholder URI.
+- New route handlers, middleware, and shared logic should come with tests covering the happy path plus the validation/error branches.
 
 ### Documentation
 

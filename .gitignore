@@ -5,3 +5,5 @@ server/.env.local
 dist/
 .omc/
 .claude/
+# mongodb-memory-server binary cache
+.mongodb-binaries/

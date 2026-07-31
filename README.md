@@ -309,6 +309,17 @@ Same shape as `Expense`, but `authorUserId` (the contributing member) in place o
 }
 ```
 
+## Testing
+
+Tests run in CI on every push and pull request (`test-client` and `test-server` jobs).
+
+| Suite | Location | Command |
+|---|---|---|
+| Client unit tests | `src/**/*.test.ts` | `npm test` (Vitest + jsdom) |
+| Server integration tests | `server/test/**/*.test.ts` | `cd server && npm test` (Vitest + Supertest + in-memory MongoDB) |
+
+Server tests use `mongodb-memory-server` — no local MongoDB or credentials are required. The binary is pinned to MongoDB 6.0.19 (7.x x64 builds require AVX2) and cached locally in `server/.mongodb-binaries`. Coverage spans auth (register/login/password change/session revocation), CSRF, the expense CRUD factory (validation, scoping, mass-assignment protection, ETags, bulk limits), the recurring scheduler's atomic claim behavior under concurrent runs, the full Express app end to end, and client currency/summary/trend/chart logic. See `CONTRIBUTING.md` for the pre-commit checklist.
+
 ## Security
 
 | Control | Detail |

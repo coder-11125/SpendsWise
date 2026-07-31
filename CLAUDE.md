@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev           # Vite dev server with HMR (proxies /api → localhost:4000)
 npm run build         # production build → dist/
 npm run preview       # preview production build locally
+npm test              # client unit tests (Vitest + jsdom, src/**/*.test.ts)
 ```
 
 ### Backend (`cd server` first)
@@ -16,6 +17,8 @@ npm run preview       # preview production build locally
 npm run dev           # tsx watch with auto-reload (development)
 npm run build         # tsc → dist/
 npm start             # run compiled dist/index.js
+npm test              # integration tests (Vitest + Supertest + mongodb-memory-server)
+npx tsc -p tsconfig.test.json --noEmit   # type-check test files
 ```
 
 ### First-time backend setup
@@ -276,14 +279,22 @@ Transaction deletion only updates local state after the server confirms success.
 
 ### CI/CD
 - GitHub Actions CI runs on push/PR to `main` (`.github/workflows/ci.yml`)
-- Jobs: Type Check Client (`tsc --noEmit`), Type Check Server (`tsc --noEmit`), Build Client (`vite build`), Build Server (`tsc`), Svelte Check (optional, `continue-on-error`)
+- Jobs: Type Check Client (`tsc --noEmit`), Type Check Server (`tsc --noEmit` + test tsconfig), Build Client (`vite build`), Build Server (`tsc`), Test Client (`npm test`), Test Server (`npm test`), Svelte Check (optional, `continue-on-error`)
 - The root `tsconfig.json` excludes `server/` because the server uses `NodeNext` module resolution vs the client's `bundler` mode
 - **The full CI suite must be run locally before every commit. There are no exceptions.** Run:
   ```bash
   npm run build                  # client build
   npx tsc --noEmit               # client type check
+  npm test                       # client tests
   cd server && npm run build     # server type check + compile
+  npx tsc -p tsconfig.test.json --noEmit   # server test type check
+  npm test                       # server tests
   ```
+
+### Testing
+- Client: `src/**/*.test.ts` — pure logic (currency, calculations, utils, charts). jsdom environment, svelte plugin for `.svelte.ts` runes.
+- Server: `server/test/**/*.test.ts` — route/middleware integration with Supertest against `mongodb-memory-server` (pinned to 6.0.19; 7.x needs AVX2). Runs in one worker so exactly one in-memory mongod is alive; the binary caches in `server/.mongodb-binaries` (git-ignored).
+- `server/test/app.test.ts` boots the full Express app and MUST stay alphabetically first: it sets `MONGODB_URI` to the in-memory server before the first `src/config.ts` import, and config freezes env at import. Never add static imports of `src/**` modules to that file — import them dynamically inside hooks/tests.
 
 ### Documentation policy
 - This file must be updated after every session or meaningful change before committing.
