@@ -21,11 +21,9 @@ export default async (req: any, res: any) => {
     return await app(req, res);
   } catch (err: any) {
     console.error("Vercel Function Failure:", err);
-    res.status(500).json({ 
-      error: "Vercel Function Failure", 
-      message: err.message,
-      stack: err.stack,
-      hint: "Check server-side logs and dependency resolution."
+    res.status(500).json({
+      error: "Internal server error",
+      hint: "Check Vercel function logs for details.",
     });
   }
 };
