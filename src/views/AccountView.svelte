@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { getExpense, getCurrentCurrency, setExpense, getBudgetGoals, setBudgetGoals, getCustomCategories, removeCustomCategory, getHiddenCategories, hideCategory, unhideCategory, getCurrentSpaceId, getSpaces, getUserId, confirmDialog } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
-  import { changePassword, deleteAllExpenses, getProfile, deleteSpace, logout, uploadBulkExpenses, loadExpenses } from '../lib/api.js';
+  import { changePassword, deleteAllExpenses, deleteAccount, getProfile, deleteSpace, logout, uploadBulkExpenses, loadExpenses } from '../lib/api.js';
   import { calculateSummary } from '../lib/calculations.svelte.js';
   import { defaultExpenseCategories, defaultIncomeCategories } from '../lib/constants.js';
   import type { Profile, Expense, Summary } from '../types.js';
@@ -21,6 +21,8 @@
   let importResult = $state<{ success: boolean; message: string } | null>(null);
   let isImporting = $state<boolean>(false);
   let isDeletingAll = $state<boolean>(false);
+  let isDeletingAccount = $state<boolean>(false);
+  let deleteAccountError = $state<string>('');
 
   async function loadProfile() {
     try {
@@ -200,6 +202,21 @@
       alert('Failed to delete expenses: ' + errorMessage);
     } finally {
       isDeletingAll = false;
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!await confirmDialog('Permanently delete your account and ALL your data? This cannot be undone.')) return;
+    if (!await confirmDialog('This deletes every transaction, AI summary, and Hub you own, and removes you from shared Hubs. Your data will be gone forever. Are you absolutely sure?')) return;
+    isDeletingAccount = true;
+    deleteAccountError = '';
+    try {
+      await deleteAccount();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      deleteAccountError = 'Failed to delete account: ' + errorMessage;
+    } finally {
+      isDeletingAccount = false;
     }
   }
 
@@ -428,6 +445,17 @@
       class="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white rounded-lg transition-colors text-sm font-medium">
       {isDeletingAll ? 'Deleting...' : 'Delete All Transactions'}
     </button>
+
+    <div class="mt-6 pt-6 border-t border-red-100 dark:border-red-900/40">
+      <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Permanently delete your account, every transaction, AI summary, and Hub you own, and remove yourself from shared Hubs. This cannot be undone.</p>
+      <button onclick={handleDeleteAccount} disabled={isDeletingAccount}
+        class="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg transition-colors text-sm font-medium">
+        {isDeletingAccount ? 'Deleting Account...' : 'Delete Account'}
+      </button>
+      {#if deleteAccountError}
+        <p class="text-sm text-rose-600 mt-2">{deleteAccountError}</p>
+      {/if}
+    </div>
 
     {#if ownedSpaces.length > 0}
       <div class="mt-6 pt-6 border-t border-red-100 dark:border-red-900/40">

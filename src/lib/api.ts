@@ -165,6 +165,25 @@ export async function logout(): Promise<void> {
   navigate('/login');
 }
 
+export async function deleteAccount(): Promise<void> {
+  const res = await apiFetch('/auth/account', {
+    method: 'DELETE',
+    body: JSON.stringify({ confirm: true }),
+  });
+  await handleJsonResponse(res, 'Failed to delete account');
+  // Same client-side teardown as logout — all server data is gone.
+  stopPolling();
+  unsubscribeSpaceChannel();
+  setIsLoggedIn(false);
+  setExpense([]);
+  setEmail('');
+  setCurrentSpaceId(null);
+  setSpaces([]);
+  setPendingInvites([]);
+  sessionStorage.setItem('sw_logged_out', 'true');
+  navigate('/login');
+}
+
 export async function checkSession(): Promise<boolean> {
   sessionStorage.removeItem('sw_logged_out');
   try {

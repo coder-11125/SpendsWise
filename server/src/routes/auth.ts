@@ -3,6 +3,10 @@ import bcrypt from "bcryptjs";
 import jwt, { SignOptions } from "jsonwebtoken";
 import passport from "../middleware/passport.js";
 import { UserModel } from "../models/User.js";
+import { ExpenseModel } from "../models/Expense.js";
+import { SummaryModel } from "../models/Summary.js";
+import { SpaceModel } from "../models/Space.js";
+import { getSpaceConnection } from "../lib/spaceDb.js";
 import { config } from "../config.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { authRequired } from "../middleware/auth.js";
@@ -194,6 +198,49 @@ router.put(
 
     const token = signAndSetCookie(res, user._id.toString(), user.tokenVersion);
     return res.json({ token, message: "Password updated successfully" });
+  })
+);
+
+// Permanent account deletion. The authenticated user's own data is removed
+// (personal expenses, AI summaries, owned Hubs with their per-Hub databases).
+// For Hubs the user only belongs to, they are removed from the member list so
+// the remaining members' shared ledger is preserved. The session cookie is
+// cleared and all JWTs are dead because the user document no longer exists.
+router.delete(
+  "/account",
+  authRequired,
+  asyncHandler(async (req, res) => {
+    if (req.body?.confirm !== true) {
+      return res.status(400).json({ error: "Confirmation required" });
+    }
+    const userId = req.userId;
+
+    // Personal ledger + AI summaries.
+    await ExpenseModel.deleteMany({ userId });
+    await SummaryModel.deleteMany({ userId });
+
+    // Hubs the user owns: drop the per-Hub database (shared expenses) and the
+    // Hub document itself. Hubs where the user is only a member: remove the
+    // membership so the other members' shared ledger survives.
+    const ownedSpaces = await SpaceModel.find({ ownerId: userId }).select("_id").lean();
+    for (const space of ownedSpaces) {
+      await getSpaceConnection(space._id.toString()).dropDatabase();
+    }
+    await SpaceModel.deleteMany({ ownerId: userId });
+    await SpaceModel.updateMany(
+      { members: { $elemMatch: { userId } } },
+      { $pull: { members: { userId } } }
+    );
+
+    await UserModel.findByIdAndDelete(userId);
+
+    res.clearCookie("sw_session", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV !== "development",
+      sameSite: "strict",
+      path: "/",
+    });
+    return res.json({ message: "Account deleted" });
   })
 );
 

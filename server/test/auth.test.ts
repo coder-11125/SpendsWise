@@ -3,8 +3,13 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestDb, clearDb, stopTestDb } from "./helpers/db.js";
-import { uniqueEmail } from "./helpers/auth.js";
+import { createUser, uniqueEmail } from "./helpers/auth.js";
 import authRouter from "../src/routes/auth.js";
+import { ExpenseModel } from "../src/models/Expense.js";
+import { SummaryModel } from "../src/models/Summary.js";
+import { SpaceModel } from "../src/models/Space.js";
+import { UserModel } from "../src/models/User.js";
+import { getSpaceConnection } from "../src/lib/spaceDb.js";
 
 const app = express();
 app.use(cookieParser());
@@ -180,5 +185,107 @@ describe("password change", () => {
       .get("/api/auth/me")
       .set("Cookie", [`sw_session=${newToken}`]);
     expect(newTokenWorks.status).toBe(200);
+  });
+});
+
+describe("account deletion", () => {
+  it("requires confirmation", async () => {
+    const { token } = await createUser();
+    const res = await request(app)
+      .delete("/api/auth/account")
+      .set("Cookie", [`sw_session=${token}`]);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/confirmation/i);
+  });
+
+  it("requires authentication", async () => {
+    const res = await request(app)
+      .delete("/api/auth/account")
+      .send({ confirm: true });
+    expect(res.status).toBe(401);
+  });
+
+  it("deletes the user's personal expenses, summaries, and owned Hubs", async () => {
+    const { _id, token } = await createUser();
+
+    await ExpenseModel.create({
+      userId: _id,
+      type: "expense",
+      amount: 25,
+      category: "Food",
+      date: new Date(),
+    });
+    await SummaryModel.create({
+      userId: _id,
+      weekStartDate: "2026-07-27",
+      weekEndDate: "2026-08-02",
+      timezone: "UTC",
+      narrative: "test summary",
+      stats: { totalIncome: 0, totalExpense: 25, net: -25, transactionCount: 1, byCategory: [] },
+    });
+    const space = await SpaceModel.create({
+      name: "My Hub",
+      ownerId: _id,
+      members: [{ userId: _id, nickname: "me", role: "owner", status: "active" }],
+    });
+    const spaceDb = getSpaceConnection(space._id.toString());
+    await spaceDb.collection("expenses").insertOne({ authorUserId: _id, amount: 10, category: "X" });
+
+    const res = await request(app)
+      .delete("/api/auth/account")
+      .set("Cookie", [`sw_session=${token}`])
+      .send({ confirm: true });
+    expect(res.status).toBe(200);
+
+    expect(await UserModel.findById(_id)).toBeNull();
+    expect(await ExpenseModel.countDocuments({ userId: _id })).toBe(0);
+    expect(await SummaryModel.countDocuments({ userId: _id })).toBe(0);
+    expect(await SpaceModel.countDocuments({ ownerId: _id })).toBe(0);
+    // The per-Hub database is dropped too.
+    const db = spaceDb.db!;
+    const remaining = await db.listCollections().toArray();
+    expect(remaining.length).toBe(0);
+  });
+
+  it("removes the user from Hubs they only belong to, keeping the Hub alive", async () => {
+    const owner = await createUser();
+    const member = await createUser();
+
+    const space = await SpaceModel.create({
+      name: "Shared Hub",
+      ownerId: owner._id,
+      members: [
+        { userId: owner._id, nickname: "owner", role: "owner", status: "active" },
+        { userId: member._id, nickname: "guest", role: "member", status: "active" },
+      ],
+    });
+
+    const res = await request(app)
+      .delete("/api/auth/account")
+      .set("Cookie", [`sw_session=${member.token}`])
+      .send({ confirm: true });
+    expect(res.status).toBe(200);
+
+    const after = await SpaceModel.findById(space._id);
+    expect(after).not.toBeNull();
+    expect(after!.members.some((m) => String(m.userId) === member._id.toString())).toBe(false);
+    expect(after!.members.some((m) => String(m.userId) === owner._id.toString())).toBe(true);
+    // The member's own account is gone.
+    expect(await UserModel.findById(member._id)).toBeNull();
+  });
+
+  it("kills the session cookie so the deleted user cannot authenticate", async () => {
+    const { _id, token } = await createUser();
+
+    const res = await request(app)
+      .delete("/api/auth/account")
+      .set("Cookie", [`sw_session=${token}`])
+      .send({ confirm: true });
+    expect(res.status).toBe(200);
+
+    // The user is deleted, so /me with the same token must fail.
+    const me = await request(app).get("/api/auth/me").set("Cookie", [`sw_session=${token}`]);
+    expect(me.status).toBe(401);
+    expect(await UserModel.findById(_id)).toBeNull();
   });
 });
