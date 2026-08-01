@@ -154,6 +154,104 @@ describe("AI chat agentic tools", () => {
     expect(personalCount).toBe(0);
   });
 
+  it("edits a Hub's shared transaction via edit_transaction", async () => {
+    const { _id, token } = await createUser();
+    const space = await SpaceModel.create({
+      name: "Family",
+      ownerId: _id,
+      members: [{ userId: _id, nickname: "Ranji", role: "owner", status: "active" }],
+    });
+    const spaceModel = getSpaceExpenseModel(space._id.toString());
+    const expense = await spaceModel.create({
+      authorUserId: _id,
+      type: "expense",
+      amount: 60,
+      category: "Groceries",
+      date: new Date(),
+    });
+
+    scriptToolRound(
+      "edit_transaction",
+      { id: expense._id.toString(), amount: 45 },
+      "Updated the Hub grocery charge to $45."
+    );
+
+    const res = await request(app)
+      .post("/api/ai/chat")
+      .set(as(token))
+      .send({ message: "make that grocery charge 45", spaceId: space._id.toString() });
+
+    expect(res.status).toBe(200);
+    expect(res.body.dataChanged).toBe(true);
+    const updated = await spaceModel.findById(expense._id);
+    expect(updated!.amount).toBe(45);
+  });
+
+  it("deletes a Hub's shared transaction via delete_transaction", async () => {
+    const { _id, token } = await createUser();
+    const space = await SpaceModel.create({
+      name: "Family",
+      ownerId: _id,
+      members: [{ userId: _id, nickname: "Ranji", role: "owner", status: "active" }],
+    });
+    const spaceModel = getSpaceExpenseModel(space._id.toString());
+    const expense = await spaceModel.create({
+      authorUserId: _id,
+      type: "expense",
+      amount: 12,
+      category: "Shopping",
+      date: new Date(),
+    });
+
+    scriptToolRound(
+      "delete_transaction",
+      { id: expense._id.toString() },
+      "Deleted the Hub transaction."
+    );
+
+    const res = await request(app)
+      .post("/api/ai/chat")
+      .set(as(token))
+      .send({ message: "delete that purchase", spaceId: space._id.toString() });
+
+    expect(res.status).toBe(200);
+    expect(res.body.dataChanged).toBe(true);
+    expect(await spaceModel.findById(expense._id)).toBeNull();
+  });
+
+  it("does not let personal chat touch a Hub transaction (ledger isolation)", async () => {
+    const { _id, token } = await createUser();
+    const space = await SpaceModel.create({
+      name: "Family",
+      ownerId: _id,
+      members: [{ userId: _id, nickname: "Ranji", role: "owner", status: "active" }],
+    });
+    const spaceModel = getSpaceExpenseModel(space._id.toString());
+    const expense = await spaceModel.create({
+      authorUserId: _id,
+      type: "expense",
+      amount: 12,
+      category: "Shopping",
+      date: new Date(),
+    });
+
+    // Personal chat tries to edit a Hub transaction id it should never see.
+    scriptToolRound(
+      "edit_transaction",
+      { id: expense._id.toString(), amount: 999 },
+      "Could not find that transaction."
+    );
+
+    const res = await request(app)
+      .post("/api/ai/chat")
+      .set(as(token))
+      .send({ message: "change that to 999" });
+
+    expect(res.status).toBe(200);
+    const untouched = await spaceModel.findById(expense._id);
+    expect(untouched!.amount).toBe(12);
+  });
+
   it("rejects chat against a Hub the user is not a member of", async () => {
     const user = await createUser();
     const owner = await createUser();
