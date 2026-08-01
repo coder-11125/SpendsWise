@@ -545,7 +545,7 @@ export async function syncTimezone(): Promise<void> {
 export async function sendAiMessage(message: string, history: any[]): Promise<any> {
   const res = await apiFetch('/ai/chat', {
     method: 'POST',
-    body: JSON.stringify({ message, history }),
+    body: JSON.stringify({ message, history, spaceId: getCurrentSpaceId() }),
   });
   return handleJsonResponse(res, 'AI request failed');
 }

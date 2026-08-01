@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendAiMessage, fetchAiQuota, loadExpenses } from '../lib/api.js';
-  import { getAiChats, getActiveAiChat, startNewAiChat, selectAiChat, setActiveAiChatMessages, type AiChatMessage, type AiChat } from '../lib/state.svelte.js';
+  import { getAiChats, getActiveAiChat, startNewAiChat, selectAiChat, setActiveAiChatMessages, getCurrentSpace, type AiChatMessage, type AiChat } from '../lib/state.svelte.js';
 
   let { show = false, onclose, embedded = false } = $props<{
     show?: boolean;
@@ -23,6 +23,9 @@
   let cooldownTimer = $state<number>(0);
   let cooldownInterval = $state<ReturnType<typeof setInterval> | null>(null);
   let showChatsMenu = $state<boolean>(false);
+
+  let currentSpace = $derived(getCurrentSpace());
+  let contextLabel = $derived(currentSpace ? `Hub: ${currentSpace.name}` : 'Personal');
 
   let messagesEl = $state<HTMLElement | null>(null);
   let inputEl = $state<HTMLInputElement | null>(null);
@@ -167,8 +170,12 @@
   </div>
 
   <div class="border-t border-slate-200 dark:border-slate-700 px-4 py-2">
-    <div class="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 mb-2">
-      <span>This week: {weeklyRemaining} left</span>
+    <div class="flex items-center justify-between gap-2 text-xs text-slate-400 dark:text-slate-500 mb-2">
+      <span class="inline-flex items-center gap-1 min-w-0">
+        <i class="ph {currentSpace ? 'ph-users-three' : 'ph-user'} text-slate-400 dark:text-slate-500"></i>
+        <span class="truncate" title="The ledger the AI reads and modifies">{contextLabel}</span>
+      </span>
+      <span class="flex-shrink-0">This week: {weeklyRemaining} left</span>
     </div>
     <div class="flex gap-2">
       <input
@@ -176,7 +183,7 @@
         type="text"
         bind:value={input}
         onkeydown={handleKeydown}
-        placeholder={cooldownTimer > 0 ? `Cooldown ${cooldownTimer}s...` : "Ask about your finances..."}
+        placeholder={cooldownTimer > 0 ? `Cooldown ${cooldownTimer}s...` : currentSpace ? "Ask about your Hub's finances..." : "Ask about your finances..."}
         disabled={sending || cooldownTimer > 0}
         class="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:opacity-50"
       />

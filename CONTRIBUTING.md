@@ -203,6 +203,7 @@ cd ..                          # back to root
 
 - All `/api/ai/*` routes are behind `authRequired` — never expose them unauthenticated.
 - The chat endpoint fetches the user's recent expense history from MongoDB and passes it as context to Groq, plus tool definitions (`add_transaction`, `edit_transaction`, `delete_transaction`) the model can invoke. Keep tool definitions and the system prompt in `routes/ai.ts`.
+- `/api/ai/chat` accepts an optional `spaceId` in the request body. When present, the chat reads from and modifies that Hub's shared ledger (membership is verified; the caller must be an active member), and notifications go to the `space-{id}` Pusher channel. Without `spaceId` it operates on the user's personal ledger. The frontend sends `spaceId: getCurrentSpaceId()` so the chat acts on whichever ledger is currently open.
 - The receipt OCR endpoints accept a base64 `data:image/...` data URL. Images are compressed client-side before upload — don't raise the `2mb`/`10mb` body limits in `app.ts` without a corresponding client-side size guard.
 - Model names are read from config (`GROQ_MODEL`, `GROQ_VISION_MODEL`, `GROQ_VISION_PRO_MODEL`) — never hardcode model strings in a route file.
 - AI usage is tracked as a single weekly quota (`aiUsage.weeklyCount`/`weekStartDate` on `User`) via `AI_WEEKLY_LIMIT` — there is no separate daily/monthly limit.

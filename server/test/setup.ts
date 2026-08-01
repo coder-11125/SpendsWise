@@ -10,3 +10,6 @@ process.env.JWT_SECRET ??= "test-only-jwt-secret-0123456789abcdef";
 process.env.CSRF_SECRET ??= "test-only-csrf-secret-0123456789abcdef";
 process.env.CRON_SECRET ??= "test-only-cron-secret-0123456789abcdef";
 process.env.FRONTEND_URL ??= "http://localhost:5173";
+// The AI chat route guards on config.groqApiKey before constructing the
+// (mocked) Groq client; a placeholder keeps it from 503ing in tests.
+process.env.GROQ_API_KEY ??= "test-only-groq-key";

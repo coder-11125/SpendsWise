@@ -1,12 +1,14 @@
 import { Router } from "express";
-import mongoose from "mongoose";
+import mongoose, { Model } from "mongoose";
 import Groq from "groq-sdk";
 import { ExpenseModel } from "../models/Expense.js";
+import { SpaceModel } from "../models/Space.js";
 import { UserModel } from "../models/User.js";
 import { authRequired } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { config } from "../config.js";
-import { notifyDataChanged } from "../lib/pusher.js";
+import { notifyDataChanged, notifySpaceDataChanged } from "../lib/pusher.js";
+import { getSpaceExpenseModel } from "../lib/spaceDb.js";
 import {
   userBurstLimiter,
   groqSlidingLimiter,
@@ -239,7 +241,23 @@ const CHAT_TOOLS: Groq.Chat.Completions.ChatCompletionTool[] = [
   },
 ];
 
-async function executeChatTool(userId: string, name: string, args: Record<string, any>): Promise<Record<string, any>> {
+// C8: which ledger the chat assistant is acting on — either the user's
+// personal transactions or a Hub's shared ledger. Personal expenses are
+// scoped by userId; a Hub's whole collection is the ledger, so the scope
+// filter is empty (membership was already verified before this runs).
+interface ChatDataContext {
+  model: Model<any>;
+  ownerFields: Record<string, any>;
+  scopeFilter: Record<string, any>;
+  notify: () => Promise<void>;
+}
+
+async function executeChatTool(
+  userId: string,
+  name: string,
+  args: Record<string, any>,
+  ctx: ChatDataContext
+): Promise<Record<string, any>> {
   if (name === "add_transaction") {
     if (typeof args.type !== "string" || !["income", "expense"].includes(args.type)) {
       return { error: "type must be 'income' or 'expense'" };
@@ -251,8 +269,8 @@ async function executeChatTool(userId: string, name: string, args: Record<string
       return { error: "category is required" };
     }
     const date = args.date && !isNaN(Date.parse(args.date)) ? new Date(args.date) : new Date();
-    const expense = await ExpenseModel.create({
-      userId,
+    const expense = await ctx.model.create({
+      ...ctx.ownerFields,
       type: args.type,
       amount: args.amount,
       category: args.category.trim().slice(0, 64),
@@ -260,7 +278,7 @@ async function executeChatTool(userId: string, name: string, args: Record<string
       note: typeof args.note === "string" ? args.note.slice(0, 500) : "",
       currency: typeof args.currency === "string" && args.currency.trim() ? args.currency.trim().slice(0, 8) : "USD",
     });
-    await notifyDataChanged(userId);
+    await ctx.notify();
     return { success: true, id: expense._id.toString() };
   }
 
@@ -288,9 +306,13 @@ async function executeChatTool(userId: string, name: string, args: Record<string
     }
     if (Object.keys(updates).length === 0) return { error: "no fields to update" };
 
-    const expense = await ExpenseModel.findOneAndUpdate({ _id: args.id, userId }, { $set: updates }, { new: true });
+    const expense = await ctx.model.findOneAndUpdate(
+      { _id: args.id, ...ctx.scopeFilter },
+      { $set: updates },
+      { new: true }
+    );
     if (!expense) return { error: "transaction not found" };
-    await notifyDataChanged(userId);
+    await ctx.notify();
     return { success: true, id: expense._id.toString() };
   }
 
@@ -298,20 +320,64 @@ async function executeChatTool(userId: string, name: string, args: Record<string
     if (typeof args.id !== "string" || !mongoose.Types.ObjectId.isValid(args.id)) {
       return { error: "invalid or missing id" };
     }
-    const expense = await ExpenseModel.findOneAndDelete({ _id: args.id, userId });
+    const expense = await ctx.model.findOneAndDelete({ _id: args.id, ...ctx.scopeFilter });
     if (!expense) return { error: "transaction not found" };
-    await notifyDataChanged(userId);
+    await ctx.notify();
     return { success: true, id: args.id };
   }
 
   return { error: `unknown tool: ${name}` };
 }
 
+// Resolve which ledger a chat request should read from and act on. When
+// spaceId is supplied the chat targets that Hub's shared ledger (membership
+// is required); otherwise it targets the user's personal ledger.
+async function resolveChatContext(
+  req: { userId?: string },
+  spaceId: unknown
+): Promise<{ ctx: ChatDataContext; contextName: string; memberNames: Record<string, string> } | { error: string; status: number }> {
+  const personalCtx: ChatDataContext = {
+    model: ExpenseModel,
+    ownerFields: { userId: req.userId },
+    scopeFilter: { userId: req.userId },
+    notify: () => notifyDataChanged(req.userId!),
+  };
+
+  if (typeof spaceId !== "string" || !spaceId) {
+    return { ctx: personalCtx, contextName: "Personal", memberNames: {} };
+  }
+  if (!mongoose.Types.ObjectId.isValid(spaceId)) {
+    return { error: "spaceId must be a valid Hub id", status: 400 };
+  }
+
+  const space = await SpaceModel.findById(spaceId).lean();
+  const membership = space?.members.find(
+    (m) => String(m.userId) === req.userId && m.status === "active"
+  );
+  if (!space || !membership) {
+    return { error: "Not a member of this Hub", status: 403 };
+  }
+
+  const memberNames: Record<string, string> = {};
+  for (const m of space.members) memberNames[String(m.userId)] = m.nickname;
+
+  return {
+    ctx: {
+      model: getSpaceExpenseModel(spaceId),
+      ownerFields: { authorUserId: req.userId },
+      scopeFilter: {},
+      notify: () => notifySpaceDataChanged(spaceId),
+    },
+    contextName: `Hub: ${space.name}`,
+    memberNames,
+  };
+}
+
 router.post(
   "/chat",
   asyncHandler(async (req, res) => {
     const start = Date.now();
-    const { message, history = [] } = req.body ?? {};
+    const { message, history = [], spaceId } = req.body ?? {};
     if (typeof message !== "string" || !message.trim()) {
       return res.status(400).json({ error: "message is required" });
     }
@@ -324,20 +390,37 @@ router.post(
     if (rejectIfUnavailable(res, req, "/chat", start)) return;
 
     try {
-      const expenses = await ExpenseModel.find({ userId: req.userId }).sort({ date: -1 }).limit(200).lean();
+      // Resolve the ledger (personal or Hub) inside the try so the acquired
+      // Groq slot is always released, including on membership/validation errors.
+      const resolved = await resolveChatContext(req, spaceId);
+      if ("error" in resolved) {
+        logAiEvent({
+          userId: req.userId, endpoint: "/chat", duration: Date.now() - start,
+          status: "error", error: resolved.error,
+        });
+        return res.status(resolved.status).json({ error: resolved.error });
+      }
+      const { ctx, contextName, memberNames } = resolved;
+
+      const expenses = await ctx.model.find(ctx.scopeFilter).sort({ date: -1 }).limit(200).lean();
       const totalIncome = expenses.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0);
       const totalExpense = expenses.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0);
 
       const lines = expenses.map((e) => {
         const d = new Date(e.date).toISOString().substring(0, 10);
         const note = e.note ? ` | ${e.note}` : "";
-        const member = e.familyMember ? ` (${e.familyMember})` : "";
+        const member = e.familyMember
+          ? ` (${e.familyMember})`
+          : e.authorUserId
+            ? ` (by ${memberNames[String(e.authorUserId)] ?? "a Hub member"})`
+            : "";
         return `[${e._id}] ${d} | ${e.type} | ${e.currency} ${e.amount} | ${e.category}${note}${member}`;
       });
 
       const today = new Date().toISOString().substring(0, 10);
       const systemPrompt = `You are a personal finance assistant for SpendsWise.
 Today: ${today}
+Context: ${contextName}
 Total Income: ${totalIncome} | Total Expenses: ${totalExpense} | Balance: ${totalIncome - totalExpense}
 
 Transaction history (newest first, id in brackets):
@@ -386,7 +469,7 @@ Never invent a transaction id — only use ids that appear in the history above.
           } catch {
             // malformed args — let the tool executor's own validation report the error
           }
-          const result = await executeChatTool(req.userId!, call.function.name, args);
+          const result = await executeChatTool(req.userId!, call.function.name, args, ctx);
           if (result.success) dataChanged = true;
           messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
         }

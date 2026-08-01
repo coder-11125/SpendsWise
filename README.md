@@ -235,7 +235,7 @@ Session is managed via an HttpOnly cookie (`sw_session`). All state-changing req
 | GET | `/api/currency/convert` | yes | `?from=&to=&amount=` — convert a single amount |
 | GET | `/api/summaries` | yes | Weekly AI-narrated summaries (generates the latest completed week's on first request) |
 | GET | `/api/ai/quota` | yes | Remaining weekly AI quota |
-| POST | `/api/ai/chat` | yes | `{ message, history? }` — chat with expense context; can add/edit/delete transactions via tool calls |
+| POST | `/api/ai/chat` | yes | `{ message, history?, spaceId? }` — chat with expense context; can add/edit/delete transactions via tool calls (personal ledger, or the Hub ledger when `spaceId` is given) |
 | POST | `/api/ai/parse-receipt` | yes | `{ imageData, pro? }` — base64 receipt image → expense fields |
 | POST | `/api/ai/parse-receipts-bulk` | yes | `{ images: [...], pro? }` — batch OCR, up to 10 images |
 
