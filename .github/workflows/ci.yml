@@ -75,7 +75,7 @@ jobs:
           cache-dependency-path: server/package-lock.json
       # Cache the in-memory MongoDB binary (mongodb-memory-server downloads it
       # to server/.mongodb-binaries on first use).
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: server/.mongodb-binaries
           key: mongodb-binaries-6.0.19
