@@ -8,6 +8,12 @@ updates:
       day: monday
       time: "09:00"
     open-pull-requests-limit: 10
+    ignore:
+      # Major versions are breaking changes that need deliberate review
+      # (e.g. express 5, mongoose 9). Only propose patch/minor updates
+      # within the currently-pinned major.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       production-dependencies:
         dependency-type: production
@@ -22,6 +28,9 @@ updates:
       day: monday
       time: "09:00"
     open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       production-dependencies:
         dependency-type: production
