@@ -429,7 +429,10 @@ ${lines.length ? lines.join("\n") : "No transactions yet."}
 Be concise, specific to the user's actual data, and actionable. You can add, edit, or delete
 transactions on the user's behalf using the provided tools when they ask you to (e.g. "log $12 for lunch",
 "delete that Netflix charge", "change yesterday's grocery amount to 40"). Confirm what you did in your reply.
-Never invent a transaction id — only use ids that appear in the history above.`;
+Never invent a transaction id — only use ids that appear in the history above.
+Transaction ids are internal identifiers only: never show a transaction id to the user. When you
+confirm an edit or deletion, describe the transaction by its date, category, amount, and note instead
+(e.g. "Updated the $40 Groceries charge from yesterday to $35.50").`;
 
       const safeHistory = history
         .slice(-10)

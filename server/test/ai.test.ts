@@ -294,4 +294,30 @@ describe("AI chat agentic tools", () => {
     expect(res.body.dataChanged).toBe(false);
     expect(await ExpenseModel.countDocuments({ userId: _id })).toBe(0);
   });
+
+  it("instructs the model to never reveal transaction ids to the user", async () => {
+    const { _id, token } = await createUser();
+    const expense = await ExpenseModel.create({
+      userId: _id,
+      type: "expense",
+      amount: 40,
+      category: "Groceries",
+      date: new Date(),
+    });
+    createMock.mockResolvedValueOnce(finalMessage("You have no transactions yet."));
+
+    const res = await request(app)
+      .post("/api/ai/chat")
+      .set(as(token))
+      .send({ message: "what did I spend?" });
+
+    expect(res.status).toBe(200);
+
+    // The history still needs the bracketed id so the model can target the
+    // edit/delete tools, but the prompt must keep ids out of user-facing text.
+    const systemPrompt = createMock.mock.calls[0][0].messages[0].content as string;
+    expect(systemPrompt).toContain(`[${expense._id}]`);
+    expect(systemPrompt).toMatch(/never show a transaction id to the user/i);
+    expect(systemPrompt).toMatch(/describe the transaction by its date, category, amount, and note/i);
+  });
 });
