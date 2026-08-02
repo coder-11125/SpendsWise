@@ -178,7 +178,7 @@ Set these in `server/.env` for local development, or in your Vercel dashboard fo
 | `FRONTEND_URL` | no | Default: `http://localhost:5173` (must match Vite dev server or Vercel URL) |
 | `CRON_SECRET` | recommended | Secret for the scheduler endpoint `/api/cron/recurring`. Set the **same** value in Vercel env vars and as a GitHub Actions repository secret (`.github/workflows/recurring-cron.yml`), which sends it as the Authorization header. |
 | `GROQ_API_KEY` | no | Enables AI features — get one free at [console.groq.com](https://console.groq.com) |
-| `GROQ_MODEL` | no | Groq text model for chat/summaries (default: `llama-3.3-70b-versatile`) |
+| `GROQ_MODEL` | no | Groq text model for chat/summaries (default: `openai/gpt-oss-20b`) |
 | `GROQ_VISION_API_KEY` | no | Separate Groq key for receipt OCR — falls back to `GROQ_API_KEY` |
 | `GROQ_VISION_MODEL` | no | Groq vision model for standard receipt OCR (default: `meta-llama/llama-4-scout-17b-16e-instruct`) |
 | `GROQ_VISION_PRO_MODEL` | no | Groq vision model for "OCR Pro" mode (default: `qwen/qwen3.6-27b`) |

@@ -41,7 +41,7 @@ export const config = {
   pusherKey: process.env.PUSHER_KEY ?? "",
   pusherSecret: process.env.PUSHER_SECRET ?? "",
   pusherCluster: process.env.PUSHER_CLUSTER ?? "ap1",
-  groqModel: process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile",
+  groqModel: process.env.GROQ_MODEL ?? "openai/gpt-oss-20b",
   groqVisionModel: process.env.GROQ_VISION_MODEL ?? "meta-llama/llama-4-scout-17b-16e-instruct",
   groqVisionProModel: process.env.GROQ_VISION_PRO_MODEL ?? "qwen/qwen3.6-27b",
   aiWeeklyLimit: Number(process.env.AI_WEEKLY_LIMIT ?? 115),
