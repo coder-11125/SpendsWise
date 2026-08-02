@@ -23,7 +23,15 @@ let _rateLimitHitTime = $state<number>(parseInt(localStorage.getItem('sw_rate_li
 // (optimistic) so no warning flashes before the first rate fetch resolves.
 let _ratesAreLive = $state<boolean>(true);
 export interface AiChatMessage { role: string; content: string }
-export interface AiChat { id: string; title: string; messages: AiChatMessage[]; updatedAt: number }
+export interface AiChat {
+  id: string;
+  title: string;
+  messages: AiChatMessage[];
+  updatedAt: number;
+  // Which ledger this conversation is pinned to: a Hub id, null for Personal,
+  // or undefined for legacy chats that follow the app's current selection.
+  spaceId?: string | null;
+}
 
 function loadAiChats(): AiChat[] {
   try {
