@@ -35,7 +35,14 @@
   let pickerOpen = $state<boolean>(false);
 
   let messagesEl = $state<HTMLElement | null>(null);
-  let inputEl = $state<HTMLInputElement | null>(null);
+  let inputEl = $state<HTMLTextAreaElement | null>(null);
+
+  const quickPrompts = [
+    'How much did I spend this month?',
+    'What are my biggest categories?',
+    'Log $5 for coffee',
+    'Show my recent transactions',
+  ];
 
   $effect(() => {
     if (active) {
@@ -70,10 +77,23 @@
     setTimeout(() => inputEl?.focus(), 100);
   }
 
+  function resizeInput() {
+    const el = inputEl;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  }
+
+  function sendPrompt(text: string) {
+    input = text;
+    send();
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || sending || Date.now() < cooldownUntil) return;
     input = '';
+    resizeInput();
     sending = true;
     const history = activeChat.messages;
     const withUser: AiChatMessage[] = [...history, { role: 'user', content: text }];
@@ -176,14 +196,24 @@
           <div class="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
             <i class="ph-fill ph-brain text-blue-600 dark:text-blue-400 text-sm"></i>
           </div>
-          <div class="bg-slate-100 dark:bg-slate-700 rounded-2xl rounded-tl-none px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 max-w-[85%] whitespace-pre-wrap">{msg.content}</div>
+          <div class="bg-slate-100 dark:bg-slate-700 rounded-2xl rounded-tl-none px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 max-w-[85%] whitespace-pre-wrap">
+            {#if msg.content === '...'}
+              <span class="inline-flex items-center gap-1 py-0.5 text-slate-500 dark:text-slate-300">
+                <span class="typing-dot"></span>
+                <span class="typing-dot" style="animation-delay: 0.15s"></span>
+                <span class="typing-dot" style="animation-delay: 0.3s"></span>
+              </span>
+            {:else}
+              {msg.content}
+            {/if}
+          </div>
         </div>
       {/if}
     {/each}
   </div>
 
-  <div class="border-t border-slate-200 dark:border-slate-700 px-4 py-2">
-    <div class="flex items-center justify-between gap-2 text-xs text-slate-400 dark:text-slate-500 mb-2">
+  <div class="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div class="flex items-center justify-between gap-2 text-xs text-slate-400 dark:text-slate-500 mb-1.5 px-1">
       <div class="relative min-w-0">
         <button
           onclick={() => pickerOpen = !pickerOpen}
@@ -224,29 +254,51 @@
       </div>
       <span class="flex-shrink-0">This week: {weeklyRemaining} left</span>
     </div>
-    <div class="flex gap-2">
-      <input
+
+    {#if activeChat.messages.length === 0}
+      <div class="flex gap-2 overflow-x-auto pb-2 px-1 -mx-1 custom-scrollbar">
+        {#each quickPrompts as prompt}
+          <button
+            onclick={() => sendPrompt(prompt)}
+            class="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-300 transition-colors cursor-pointer"
+          >
+            {prompt}
+          </button>
+        {/each}
+      </div>
+    {/if}
+
+    <div class="rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm transition-all focus-within:shadow-md focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-400">
+      <textarea
         bind:this={inputEl}
-        type="text"
         bind:value={input}
         onkeydown={handleKeydown}
+        oninput={resizeInput}
+        rows={1}
+        enterkeyhint="send"
         placeholder={cooldownTimer > 0 ? `Cooldown ${cooldownTimer}s...` : aiSpace ? "Ask about your Hub's finances..." : "Ask about your finances..."}
         disabled={sending || cooldownTimer > 0}
-        class="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:opacity-50"
-      />
-      <button
-        onclick={send}
-        disabled={!input.trim() || sending || cooldownTimer > 0}
-        class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {#if sending}
-          <i class="ph ph-spinner animate-spin"></i>
-        {:else if cooldownTimer > 0}
-          {cooldownTimer}s
-        {:else}
-          <i class="ph ph-paper-plane-right"></i>
-        {/if}
-      </button>
+        class="w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none disabled:opacity-50"
+      ></textarea>
+      <div class="flex items-center justify-between gap-2 px-2 pb-1.5">
+        <span class="hidden sm:inline pl-1 text-[10px] text-slate-400 dark:text-slate-500">Enter to send · Shift+Enter for a new line</span>
+        <div class="flex items-center gap-1.5 ml-auto">
+          <button
+            onclick={send}
+            disabled={!input.trim() || sending || cooldownTimer > 0}
+            aria-label="Send message"
+            class="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all {!input.trim() || cooldownTimer > 0 ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}"
+          >
+            {#if sending}
+              <i class="ph ph-spinner animate-spin text-sm"></i>
+            {:else if cooldownTimer > 0}
+              <span class="text-[11px] font-bold">{cooldownTimer}s</span>
+            {:else}
+              <i class="ph-fill ph-paper-plane-right text-sm"></i>
+            {/if}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 {/snippet}
@@ -260,3 +312,19 @@
     {@render panelContent()}
   </div>
 {/if}
+
+<style>
+  .typing-dot {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 9999px;
+    background: currentColor;
+    animation: typing-bounce 1.2s infinite ease-in-out;
+  }
+
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+    30% { transform: translateY(-3px); opacity: 1; }
+  }
+</style>
