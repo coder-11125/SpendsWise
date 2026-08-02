@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendAiMessage, fetchAiQuota, loadExpenses } from '../lib/api.js';
-  import { getAiChats, getActiveAiChat, startNewAiChat, selectAiChat, setActiveAiChatMessages, getCurrentSpace, type AiChatMessage, type AiChat } from '../lib/state.svelte.js';
+  import { getAiChats, getActiveAiChat, startNewAiChat, selectAiChat, setActiveAiChatMessages, setActiveAiChatSpaceId, getSpaces, getCurrentSpaceId, type AiChatMessage, type AiChat } from '../lib/state.svelte.js';
 
   let { show = false, onclose, embedded = false } = $props<{
     show?: boolean;
@@ -24,8 +24,15 @@
   let cooldownInterval = $state<ReturnType<typeof setInterval> | null>(null);
   let showChatsMenu = $state<boolean>(false);
 
-  let currentSpace = $derived(getCurrentSpace());
-  let contextLabel = $derived(currentSpace ? `Hub: ${currentSpace.name}` : 'Personal');
+  // The ledger this conversation targets. New/legacy chats fall back to the
+  // dashboard's current selection until the user pins one from the in-chat
+  // picker; once pinned, the chat keeps its own Hub independent of the
+  // dashboard.
+  let pinnedSpaceId = $derived(activeChat.spaceId === undefined ? getCurrentSpaceId() : activeChat.spaceId);
+  let spaces = $derived(getSpaces());
+  let aiSpace = $derived(pinnedSpaceId ? spaces.find(s => s.id === pinnedSpaceId) ?? null : null);
+  let contextLabel = $derived(aiSpace ? `Hub: ${aiSpace.name}` : 'Personal');
+  let pickerOpen = $state<boolean>(false);
 
   let messagesEl = $state<HTMLElement | null>(null);
   let inputEl = $state<HTMLInputElement | null>(null);
@@ -57,6 +64,12 @@
     setTimeout(() => inputEl?.focus(), 100);
   }
 
+  function selectAiSpace(spaceId: string | null) {
+    setActiveAiChatSpaceId(spaceId);
+    pickerOpen = false;
+    setTimeout(() => inputEl?.focus(), 100);
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || sending || Date.now() < cooldownUntil) return;
@@ -66,7 +79,7 @@
     const withUser: AiChatMessage[] = [...history, { role: 'user', content: text }];
     setActiveAiChatMessages([...withUser, { role: 'assistant', content: '...' }]);
     try {
-      const res = await sendAiMessage(text, history);
+      const res = await sendAiMessage(text, history, aiSpace ? aiSpace.id : null);
       if (res.weeklyRemaining !== undefined) weeklyRemaining = res.weeklyRemaining;
       const reply = res.reply || 'Sorry, I could not process that.';
       setActiveAiChatMessages([...withUser, { role: 'assistant', content: reply }]);
@@ -171,10 +184,44 @@
 
   <div class="border-t border-slate-200 dark:border-slate-700 px-4 py-2">
     <div class="flex items-center justify-between gap-2 text-xs text-slate-400 dark:text-slate-500 mb-2">
-      <span class="inline-flex items-center gap-1 min-w-0">
-        <i class="ph {currentSpace ? 'ph-users-three' : 'ph-user'} text-slate-400 dark:text-slate-500"></i>
-        <span class="truncate" title="The ledger the AI reads and modifies">{contextLabel}</span>
-      </span>
+      <div class="relative min-w-0">
+        <button
+          onclick={() => pickerOpen = !pickerOpen}
+          class="flex items-center gap-1 min-w-0 max-w-[13rem] px-1.5 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300 cursor-pointer"
+          title="Ledger the AI reads and modifies"
+        >
+          <i class="ph {aiSpace ? 'ph-users-three' : 'ph-user'} text-slate-400 dark:text-slate-500"></i>
+          <span class="truncate">{contextLabel}</span>
+          <i class="ph ph-caret-down text-[10px] flex-shrink-0"></i>
+        </button>
+        {#if pickerOpen}
+          <div role="presentation" class="fixed inset-0 z-40" onclick={() => pickerOpen = false}></div>
+          <div class="absolute left-0 bottom-full mb-1 w-56 max-h-80 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
+            <button
+              onclick={() => selectAiSpace(null)}
+              class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors {!pinnedSpaceId ? 'text-blue-600 font-medium' : 'text-slate-700 dark:text-slate-200'}"
+            >
+              <i class="ph ph-user"></i>
+              <span class="truncate">Personal</span>
+              {#if !pinnedSpaceId}
+                <i class="ph ph-check text-blue-600 ml-auto flex-shrink-0"></i>
+              {/if}
+            </button>
+            {#each spaces as space (space.id)}
+              <button
+                onclick={() => selectAiSpace(space.id)}
+                class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors {pinnedSpaceId === space.id ? 'text-blue-600 font-medium' : 'text-slate-700 dark:text-slate-200'}"
+              >
+                <i class="ph ph-users-three"></i>
+                <span class="truncate">{space.name}</span>
+                {#if pinnedSpaceId === space.id}
+                  <i class="ph ph-check text-blue-600 ml-auto flex-shrink-0"></i>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
       <span class="flex-shrink-0">This week: {weeklyRemaining} left</span>
     </div>
     <div class="flex gap-2">
@@ -183,7 +230,7 @@
         type="text"
         bind:value={input}
         onkeydown={handleKeydown}
-        placeholder={cooldownTimer > 0 ? `Cooldown ${cooldownTimer}s...` : currentSpace ? "Ask about your Hub's finances..." : "Ask about your finances..."}
+        placeholder={cooldownTimer > 0 ? `Cooldown ${cooldownTimer}s...` : aiSpace ? "Ask about your Hub's finances..." : "Ask about your finances..."}
         disabled={sending || cooldownTimer > 0}
         class="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:opacity-50"
       />

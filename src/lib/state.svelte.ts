@@ -261,6 +261,17 @@ export function setActiveAiChatMessages(messages: AiChatMessage[]): void {
   persistAiChats();
 }
 
+// Pin the active conversation to a specific ledger (a Hub id, or null for
+// Personal). This is independent of the dashboard's current Hub selection —
+// each chat remembers which ledger it is talking about.
+export function setActiveAiChatSpaceId(spaceId: string | null): void {
+  _activeAiChat = { ..._activeAiChat, spaceId };
+  if (_activeAiChatSaved) {
+    _aiChats = _aiChats.map(c => c.id === _activeAiChat.id ? _activeAiChat : c);
+  }
+  persistAiChats();
+}
+
 export function getEmail() { return _email; }
 export function setEmail(v: string) {
   _email = v;
