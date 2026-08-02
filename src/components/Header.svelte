@@ -59,7 +59,7 @@
 
         {#if switcherOpen}
           <div role="presentation" class="fixed inset-0 z-40" onclick={() => switcherOpen = false}></div>
-          <div class="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
+          <div class="absolute right-0 mt-2 w-56 max-w-[calc(100vw_-_1.5rem)] max-h-[min(20rem,60vh)] overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
             <button
               onclick={() => selectSpace(null)}
               class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors {!currentSpaceId ? 'text-blue-600 font-medium' : 'text-slate-700 dark:text-slate-200'}"

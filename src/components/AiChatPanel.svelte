@@ -178,7 +178,7 @@
       </button>
       {#if showChatsMenu}
         <div role="presentation" class="fixed inset-0 z-10" onclick={() => showChatsMenu = false}></div>
-        <div class="absolute right-0 top-full mt-1 w-64 max-h-80 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-20">
+        <div class="absolute right-0 top-full mt-1 w-64 max-w-[calc(100vw_-_1.5rem)] max-h-[min(20rem,60vh)] overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-20">
           {#if recentChats.length === 0}
             <p class="text-xs text-slate-400 dark:text-slate-500 px-3 py-3 text-center">No chats yet</p>
           {:else}
@@ -252,7 +252,7 @@
         </button>
         {#if pickerOpen}
           <div role="presentation" class="fixed inset-0 z-40" onclick={() => pickerOpen = false}></div>
-          <div class="absolute left-0 bottom-full mb-1 w-56 max-h-80 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
+          <div class="absolute left-0 bottom-full mb-1 w-56 max-w-[calc(100vw_-_1.5rem)] max-h-[min(20rem,50vh)] overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
             <button
               onclick={() => selectAiSpace(null)}
               class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors {!pinnedSpaceId ? 'text-blue-600 font-medium' : 'text-slate-700 dark:text-slate-200'}"
