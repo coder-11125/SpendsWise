@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendAiMessage, fetchAiQuota, loadExpenses } from '../lib/api.js';
-  import { getAiChats, getActiveAiChat, startNewAiChat, selectAiChat, setActiveAiChatMessages, setActiveAiChatSpaceId, getSpaces, getCurrentSpaceId, type AiChatMessage, type AiChat } from '../lib/state.svelte.js';
+  import { getAiChats, getActiveAiChat, startNewAiChat, selectAiChat, deleteAiChat, setActiveAiChatMessages, setActiveAiChatSpaceId, getSpaces, getCurrentSpaceId, type AiChatMessage, type AiChat } from '../lib/state.svelte.js';
 
   let { show = false, onclose, embedded = false } = $props<{
     show?: boolean;
@@ -15,6 +15,7 @@
     ? [{ role: 'assistant', content: 'New conversation started. What would you like to know about your finances?' }]
     : activeChat.messages);
   let recentChats = $derived<AiChat[]>(getAiChats());
+  let isSavedChat = $derived(recentChats.some(c => c.id === activeChat.id));
 
   let input = $state<string>('');
   let sending = $state<boolean>(false);
@@ -67,6 +68,12 @@
 
   function openChat(id: string) {
     selectAiChat(id);
+    showChatsMenu = false;
+    setTimeout(() => inputEl?.focus(), 100);
+  }
+
+  function deleteChat(id: string) {
+    deleteAiChat(id);
     showChatsMenu = false;
     setTimeout(() => inputEl?.focus(), 100);
   }
@@ -153,6 +160,15 @@
       <button onclick={newChat} class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1" title="New chat">
         <i class="ph ph-plus-circle text-lg"></i>
       </button>
+      {#if isSavedChat}
+        <button
+          onclick={() => deleteChat(activeChat.id)}
+          class="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors p-1"
+          title="Delete chat"
+        >
+          <i class="ph ph-trash text-lg"></i>
+        </button>
+      {/if}
       <button
         onclick={() => showChatsMenu = !showChatsMenu}
         class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1"
@@ -167,12 +183,22 @@
             <p class="text-xs text-slate-400 dark:text-slate-500 px-3 py-3 text-center">No chats yet</p>
           {:else}
             {#each recentChats as chat}
-              <button
-                onclick={() => openChat(chat.id)}
-                class="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors truncate {chat.id === activeChat.id ? 'bg-slate-100 dark:bg-slate-700 font-medium' : ''}"
-              >
-                {chat.title}
-              </button>
+              <div class="flex items-center group {chat.id === activeChat.id ? 'bg-slate-100 dark:bg-slate-700' : ''} hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                <button
+                  onclick={() => openChat(chat.id)}
+                  class="flex-1 min-w-0 text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 truncate {chat.id === activeChat.id ? 'font-medium' : ''}"
+                >
+                  {chat.title}
+                </button>
+                <button
+                  onclick={() => deleteChat(chat.id)}
+                  class="flex-shrink-0 px-2 py-2 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                  title="Delete chat"
+                  aria-label="Delete chat"
+                >
+                  <i class="ph ph-trash"></i>
+                </button>
+              </div>
             {/each}
           {/if}
         </div>

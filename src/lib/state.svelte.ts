@@ -247,6 +247,17 @@ export function selectAiChat(id: string): void {
   _activeAiChatSaved = true;
 }
 
+export function deleteAiChat(id: string): void {
+  _aiChats = _aiChats.filter(c => c.id !== id);
+  persistAiChats();
+  // If the deleted conversation was the one being viewed, reset to a fresh
+  // draft so the panel never shows messages from a chat that no longer exists.
+  if (_activeAiChat.id === id) {
+    _activeAiChat = makeDraftChat();
+    _activeAiChatSaved = false;
+  }
+}
+
 export function setActiveAiChatMessages(messages: AiChatMessage[]): void {
   _activeAiChat = { ..._activeAiChat, messages, updatedAt: Date.now() };
   if (!_activeAiChatSaved) {
