@@ -102,7 +102,7 @@
 
         {#if notificationsOpen}
           <div role="presentation" class="fixed inset-0 z-40" onclick={() => notificationsOpen = false}></div>
-          <div class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 p-3 animate-fade-in">
+          <div class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] max-h-[min(24rem,70vh)] overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 p-3 animate-fade-in">
             <div class="flex items-center justify-between mb-2">
               <h2 class="font-semibold text-slate-800 dark:text-slate-100">Notifications</h2>
               {#if pendingInvites.length > 0}
@@ -115,7 +115,7 @@
             {#if pendingInvites.length === 0}
               <p class="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">No new notifications.</p>
             {:else}
-              <ul class="space-y-2 max-h-80 overflow-y-auto">
+              <ul class="space-y-2">
                 {#each pendingInvites as space (space.id)}
                   <li class="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
                     <p class="text-sm text-slate-700 dark:text-slate-200 mb-2">
