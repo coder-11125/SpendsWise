@@ -93,8 +93,14 @@ async function computeWeekStats(userId: string, startUtc: Date, endUtc: Date): P
   };
 }
 
-function fallbackNarrative(stats: WeekStats): string {
+function fallbackNarrative(stats: WeekStats, lang: string): string {
   const top = stats.byCategory[0];
+  if (lang === "es") {
+    return (
+      `Esta semana gastaste ${stats.totalExpense.toFixed(2)} en ${stats.transactionCount} transacción(es)` +
+      (top ? `, siendo ${top.category} tu categoría más grande con ${top.amount.toFixed(2)}.` : ".")
+    );
+  }
   return (
     `This week you spent ${stats.totalExpense.toFixed(2)} across ${stats.transactionCount} transaction(s)` +
     (top ? `, with ${top.category} as your largest category at ${top.amount.toFixed(2)}.` : ".")
@@ -105,9 +111,9 @@ function fallbackNarrative(stats: WeekStats): string {
 // pre-computed server-side so the model only has to narrate real figures,
 // not calculate or invent them, which is what keeps this from reading as
 // generic AI filler.
-async function generateNarrative(stats: WeekStats, prevStats: WeekStats, startKey: string, endKey: string): Promise<string> {
+async function generateNarrative(stats: WeekStats, prevStats: WeekStats, startKey: string, endKey: string, lang: string): Promise<string> {
   if (!groqSlidingLimiter.allow(config.groqApiKey, 25) || !acquireGroqSlot()) {
-    return fallbackNarrative(stats);
+    return fallbackNarrative(stats, lang);
   }
   try {
     const topCategories = stats.byCategory
@@ -136,7 +142,13 @@ Reference actual category names and merchant/description notes from the data. Do
 phrases like "great job" or "you should budget better" unless directly tied to a specific number below.
 Write 3-4 short, dense paragraphs, then a "Highlights" section with 2-4 bullet points calling out concrete
 things (e.g. the single largest expense with its amount and note, the category that grew or shrank the most
-vs last week with the actual percentage, an unusually high-frequency category).
+vs last week with the actual percentage, an unusually high-frequency category).${
+  lang === "es"
+    ? "\nWrite the summary in Spanish (es). Use natural, conversational Spanish."
+    : lang && lang !== "en"
+      ? `\nWrite the summary in the user's language (locale: ${lang}).`
+      : ""
+}
 
 Week: ${startKey} to ${endKey}
 Total income: ${stats.totalIncome.toFixed(2)}
@@ -159,10 +171,10 @@ ${notesList || "No notes recorded on any expense this week."}`;
       temperature: 0.4,
     });
 
-    return completion.choices[0]?.message?.content?.trim() || fallbackNarrative(stats);
+    return completion.choices[0]?.message?.content?.trim() || fallbackNarrative(stats, lang);
   } catch (err) {
     console.error("[Summaries] Groq generation failed:", err);
-    return fallbackNarrative(stats);
+    return fallbackNarrative(stats, lang);
   } finally {
     releaseGroqSlot();
   }
@@ -182,6 +194,7 @@ router.get(
 
     const { startKey, endKey, startUtc, endUtc } = getWeekRange(timezone, 1);
     const existing = await SummaryModel.findOne({ userId: req.userId, weekStartDate: startKey }).lean();
+    const lang = typeof req.query.lang === "string" ? req.query.lang : "en";
 
     if (!existing) {
       const stats = await computeWeekStats(req.userId!, startUtc, endUtc);
@@ -189,7 +202,7 @@ router.get(
       if (stats.transactionCount > 0) {
         const prevRange = getWeekRange(timezone, 2);
         const prevStats = await computeWeekStats(req.userId!, prevRange.startUtc, prevRange.endUtc);
-        const narrative = await generateNarrative(stats, prevStats, startKey, endKey);
+        const narrative = await generateNarrative(stats, prevStats, startKey, endKey, lang);
 
         try {
           await SummaryModel.create({

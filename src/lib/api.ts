@@ -526,7 +526,7 @@ export async function fetchAiQuota(): Promise<{ weeklyRemaining: number }> {
 }
 
 export async function fetchSummaries(): Promise<{ summaries: WeeklySummary[] }> {
-  const res = await apiFetch('/summaries');
+  const res = await apiFetch(`/summaries?lang=${getLocale()}`);
   return handleJsonResponse(res, 'Failed to fetch summaries');
 }
 
