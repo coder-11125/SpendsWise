@@ -4,6 +4,7 @@
   import { getAllCategories, getSpaces, getCurrentSpaceId } from '../lib/state.svelte.js';
   import { compressImageToDataUrl } from '../lib/utils.js';
   import { t } from '../lib/i18n.svelte.js';
+  import { getFlatpickrLocale } from '../lib/flatpickrLocale.js';
   import type { Expense, Recurrence } from '../types.js';
   import BulkImportModal from './BulkImportModal.svelte';
   import CategorySelect from './CategorySelect.svelte';
@@ -55,11 +56,12 @@
 
   onMount(() => {
     if (dateInputEl) {
-      import('flatpickr').then((mod) => {
+      import('flatpickr').then(async (mod) => {
         fpInstance = mod.default(dateInputEl as HTMLElement, {
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
+          locale: await getFlatpickrLocale(mod),
           defaultDate: date,
           onChange: (selectedDates: Date[]) => {
             if (selectedDates[0]) {
@@ -77,11 +79,12 @@
 
   $effect(() => {
     if (endDateInputEl && isRecurring && !endDateFp) {
-      import('flatpickr').then((mod) => {
+      import('flatpickr').then(async (mod) => {
         endDateFp = mod.default(endDateInputEl as HTMLElement, {
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
+          locale: await getFlatpickrLocale(mod),
           disableMobile: true,
           defaultDate: recurrenceEndDate || undefined,
           onChange: (selectedDates: Date[]) => {

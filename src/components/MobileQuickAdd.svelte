@@ -5,6 +5,7 @@
   import { getCurrencySymbol } from '../lib/currency.js';
   import { compressImageToDataUrl } from '../lib/utils.js';
   import { t } from '../lib/i18n.svelte.js';
+  import { getFlatpickrLocale } from '../lib/flatpickrLocale.js';
   import type { Expense } from '../types.js';
   import CategorySelect from './CategorySelect.svelte';
   import BulkImportModal from './BulkImportModal.svelte';
@@ -53,11 +54,12 @@
 
   $effect(() => {
     if (dateInput && !fp) {
-      import('flatpickr').then((mod) => {
+      import('flatpickr').then(async (mod) => {
         fp = mod.default(dateInput as HTMLElement, {
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
+          locale: await getFlatpickrLocale(mod),
           disableMobile: true,
           defaultDate: date || 'today',
         });

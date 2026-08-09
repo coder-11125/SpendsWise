@@ -4,6 +4,7 @@
   import { updateExpenseItem, getCurrentCurrency } from '../lib/state.svelte.js';
   import { categoryIcons } from '../lib/constants.js';
   import { t } from '../lib/i18n.svelte.js';
+  import { getFlatpickrLocale } from '../lib/flatpickrLocale.js';
   import type { Expense, Recurrence } from '../types.js';
   import CategorySelect from './CategorySelect.svelte';
 
@@ -47,22 +48,24 @@
 
   $effect(() => {
     if (dateInput && !fp) {
-      import('flatpickr').then((mod) => {
+      import('flatpickr').then(async (mod) => {
         fp = mod.default(dateInput as HTMLElement, {
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
+          locale: await getFlatpickrLocale(mod),
           disableMobile: true,
           defaultDate: date || 'today',
         });
       });
     }
     if (endDateInput && hasRecurrence && !endDateFp) {
-      import('flatpickr').then((mod) => {
+      import('flatpickr').then(async (mod) => {
         endDateFp = mod.default(endDateInput as HTMLElement, {
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
+          locale: await getFlatpickrLocale(mod),
           disableMobile: true,
           defaultDate: recurrenceEndDate || undefined,
           onChange: (selectedDates: Date[]) => {
