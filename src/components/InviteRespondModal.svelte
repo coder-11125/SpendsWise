@@ -9,7 +9,7 @@
 
   function nicknameFor(space: any): string {
     const owner = space.members.find((m: any) => m.role === 'owner');
-    return owner?.nickname || 'The owner';
+    return owner?.nickname || t('invite.theOwner');
   }
 
   async function respond(spaceId: string, accept: boolean) {

@@ -15,6 +15,7 @@ export const en: Dict = {
   "common.add": "Add",
   "common.loading": "Loading...",
   "common.unknownError": "Unknown error",
+  "common.serverError": "Server error: {status}",
   "common.fillAllFields": "Please fill in all fields.",
   "common.language": "Language",
   "type.expense": "Expense",
@@ -351,4 +352,5 @@ export const en: Dict = {
   "invite.accept": "Accept",
   "invite.decline": "Decline",
   "invite.respondFailed": "Failed to respond to invite.",
+  "invite.theOwner": "The owner",
 };

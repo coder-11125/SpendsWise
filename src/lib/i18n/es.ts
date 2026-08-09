@@ -15,6 +15,7 @@ export const es: Dict = {
   "common.add": "Agregar",
   "common.loading": "Cargando...",
   "common.unknownError": "Error desconocido",
+  "common.serverError": "Error del servidor: {status}",
   "common.fillAllFields": "Completa todos los campos.",
   "common.language": "Idioma",
   "type.expense": "Gasto",
@@ -351,6 +352,7 @@ export const es: Dict = {
   "invite.accept": "Aceptar",
   "invite.decline": "Rechazar",
   "invite.respondFailed": "No se pudo responder a la invitación.",
+  "invite.theOwner": "El propietario",
 };
 
 // Server-originated error strings, keyed by the exact English message the
@@ -434,4 +436,21 @@ export const serverErrors: Record<string, string> = {
   "transaction not found": "Transacción no encontrada",
   "type must be 'income' or 'expense'": "type debe ser 'income' o 'expense'",
   "weekly_quota": "cuota semanal",
+  // Client-authored fallback messages (shown when the server returns no error).
+  "Login failed": "No se pudo iniciar sesión",
+  "Registration failed": "No se pudo registrar",
+  "Failed to delete account": "No se pudo eliminar la cuenta",
+  "Failed to save changes.": "No se pudieron guardar los cambios.",
+  "Failed to create Hub": "No se pudo crear el Hub",
+  "Failed to rename Hub": "No se pudo renombrar el Hub",
+  "Failed to invite member": "No se pudo invitar al miembro",
+  "Failed to rename member": "No se pudo renombrar al miembro",
+  "Failed to remove member": "No se pudo eliminar al miembro",
+  "Failed to respond to invite": "No se pudo responder a la invitación",
+  "Failed to delete Hub": "No se pudo eliminar el Hub",
+  "Bulk upload failed": "No se pudo realizar la carga masiva",
+  "Failed to update password.": "No se pudo actualizar la contraseña.",
+  "Failed to delete all expenses": "No se pudieron eliminar todos los gastos",
+  "Failed to fetch AI quota": "No se pudo obtener la cuota de IA",
+  "Failed to fetch summaries": "No se pudieron cargar los resúmenes",
 };

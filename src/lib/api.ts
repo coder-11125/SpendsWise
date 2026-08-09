@@ -14,7 +14,7 @@ import {
   setRatesAreLive,
   navigate,
 } from './state.svelte.js';
-import { getLocale, localizeServerError } from './i18n.svelte.js';
+import { getLocale, localizeServerError, t } from './i18n.svelte.js';
 import type { Expense, Profile, WeeklySummary, Space } from '../types.js';
 
 // Prevent an older polling/Pusher response from restoring transactions after
@@ -115,7 +115,7 @@ async function handleJsonResponse(res: Response, fallbackError: string): Promise
       if (data.retryAfter) err.retryAfter = data.retryAfter;
       throw err;
     }
-    const err = new Error(`Server error: ${res.status}`) as any;
+    const err = new Error(t('common.serverError', { status: res.status })) as any;
     err.status = res.status;
     throw err;
   }

@@ -127,6 +127,19 @@ describe("i18n", () => {
       setLocale("es");
       expect(localizeServerError("Something brand new")).toBe("Something brand new");
     });
+
+    it("translates client-authored fallback messages", () => {
+      setLocale("es");
+      expect(localizeServerError("Failed to create Hub")).toBe("No se pudo crear el Hub");
+      expect(localizeServerError("Login failed")).toBe("No se pudo iniciar sesión");
+    });
+
+    it("localizes the non-JSON server error via t() interpolation", () => {
+      setLocale("es");
+      expect(t("common.serverError", { status: 500 })).toBe("Error del servidor: 500");
+      setLocale("en");
+      expect(t("common.serverError", { status: 500 })).toBe("Server error: 500");
+    });
   });
 
   describe("locale detection", () => {
