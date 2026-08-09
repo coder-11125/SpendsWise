@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/coder11125/SpendsWise/actions/workflows/ci.yml/badge.svg)](https://github.com/coder11125/SpendsWise/actions/workflows/ci.yml) [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/coder11125/SpendsWise/blob/main/LICENSE) [![Svelte v5](https://img.shields.io/badge/Svelte-5-ff3e00?logo=svelte&logoColor=white)](https://svelte.dev) [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org) [![Last Commit](https://img.shields.io/github/last-commit/coder11125/SpendsWise)](https://github.com/coder11125/SpendsWise/commits/main)
 
-A personal finance tracker built with Svelte 5, TypeScript, Express, and MongoDB. Includes shared multi-user Spaces, an AI finance assistant powered by Groq, real-time sync via Pusher, recurring transactions, receipt OCR, weekly AI-narrated summaries, and multi-currency support. Deployed on Vercel.
+A personal finance tracker built with Svelte 5, TypeScript, Express, and MongoDB. Includes shared multi-user Spaces, an AI finance assistant powered by Groq, real-time sync via Pusher, recurring transactions, receipt OCR, weekly AI-narrated summaries, multi-currency support, and a full English/Spanish interface (i18n). Deployed on Vercel.
 
 ## Features
 
@@ -61,6 +61,9 @@ Accurate financial tracking where the Total Balance is calculated as income minu
 ### Dark Mode
 System-aware dark mode that automatically switches based on your OS preference. The toggle state is persisted to `localStorage` and can be manually overridden, with a smooth color transition across the entire application.
 
+### Internationalization (English / Español)
+Full English and Spanish translations for the entire interface, including views, forms, modals, charts, and the AI assistant. Switch languages from the Header dropdown, the login screen, or the Account view's Language card. Your choice persists in `localStorage` and defaults to your browser language (Spanish detected automatically). Locale-aware formatting is used throughout: numbers and dates follow the active locale, and the AI chat responds in your selected language. The dictionary architecture (`src/lib/i18n/`) makes adding more locales a matter of adding one file.
+
 ### Mobile-First Design
 Fully responsive layout with a dedicated mobile navigation experience. On mobile devices, a bottom navigation bar provides quick access to Dashboard, Expense, a floating Quick Add button, Income, Account, and AI views. The bottom nav features a concave center cutout with a raised gradient Quick Add button for one-tap transaction entry. The AI button opens the AI chat panel as a modal for quick access to the finance assistant. On desktop, a collapsible sidebar provides the same navigation.
 
@@ -102,6 +105,8 @@ SpendsWise/
 │   │   ├── calculations.svelte.ts  # Async summary/category/member-breakdown calculations
 │   │   ├── utils.ts            # Date helpers, trend data, image compression
 │   │   ├── charts.ts           # Canvas pie chart + trend chart renderers
+│   │   ├── i18n.svelte.ts      # Reactive i18n core — t(), setLocale(), formatNumber()
+│   │   ├── i18n/               # en.ts, es.ts dictionaries + Message/Dict types
 │   │   └── constants.ts        # Currencies, colors, category icons
 │   ├── components/             # UI components (modals, forms, cards, charts, SpacesView pieces)
 │   └── views/                  # Dashboard, IncomeView, ExpenseView, AccountView, SpacesView, SummariesView

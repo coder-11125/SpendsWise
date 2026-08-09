@@ -1,6 +1,7 @@
 <script lang="ts">
   import { sendAiMessage, fetchAiQuota, loadExpenses } from '../lib/api.js';
   import { getAiChats, getActiveAiChat, startNewAiChat, selectAiChat, deleteAiChat, setActiveAiChatMessages, setActiveAiChatSpaceId, getSpaces, getCurrentSpaceId, type AiChatMessage, type AiChat } from '../lib/state.svelte.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let { show = false, onclose, embedded = false } = $props<{
     show?: boolean;
@@ -12,7 +13,7 @@
 
   let activeChat = $derived(getActiveAiChat());
   let messages = $derived<AiChatMessage[]>(activeChat.messages.length === 0
-    ? [{ role: 'assistant', content: 'New conversation started. What would you like to know about your finances?' }]
+    ? [{ role: 'assistant', content: t('ai.newConversation') }]
     : activeChat.messages);
   let recentChats = $derived<AiChat[]>(getAiChats());
   let isSavedChat = $derived(recentChats.some(c => c.id === activeChat.id));
@@ -32,18 +33,18 @@
   let pinnedSpaceId = $derived(activeChat.spaceId === undefined ? getCurrentSpaceId() : activeChat.spaceId);
   let spaces = $derived(getSpaces());
   let aiSpace = $derived(pinnedSpaceId ? spaces.find(s => s.id === pinnedSpaceId) ?? null : null);
-  let contextLabel = $derived(aiSpace ? `Hub: ${aiSpace.name}` : 'Personal');
+  let contextLabel = $derived(aiSpace ? t('ai.hubContext', { name: aiSpace.name }) : t('header.personal'));
   let pickerOpen = $state<boolean>(false);
 
   let messagesEl = $state<HTMLElement | null>(null);
   let inputEl = $state<HTMLTextAreaElement | null>(null);
 
-  const quickPrompts = [
-    'How much did I spend this month?',
-    'What are my biggest categories?',
-    'Log $5 for coffee',
-    'Show my recent transactions',
-  ];
+  const quickPrompts = $derived([
+    t('ai.quick1'),
+    t('ai.quick2'),
+    t('ai.quick3'),
+    t('ai.quick4'),
+  ]);
 
   $effect(() => {
     if (active) {
@@ -108,11 +109,11 @@
     try {
       const res = await sendAiMessage(text, history, aiSpace ? aiSpace.id : null);
       if (res.weeklyRemaining !== undefined) weeklyRemaining = res.weeklyRemaining;
-      const reply = res.reply || 'Sorry, I could not process that.';
+      const reply = res.reply || t('ai.sorry');
       setActiveAiChatMessages([...withUser, { role: 'assistant', content: reply }]);
       if (res.dataChanged) loadExpenses();
     } catch (err: any) {
-      const msg = err?.message || 'Network error. Please try again.';
+      const msg = err?.message || t('form.networkError');
       setActiveAiChatMessages([...withUser, { role: 'assistant', content: msg }]);
       if (err.status === 429 && err.retryAfter) {
         cooldownUntil = Date.now() + err.retryAfter * 1000;
@@ -152,19 +153,19 @@
         <i class="ph-fill ph-brain text-blue-600 dark:text-blue-400 text-sm"></i>
       </div>
       <div>
-        <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">AI Assistant</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Powered by AI</p>
+        <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">{t('ai.assistant')}</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">{t('ai.poweredByAI')}</p>
       </div>
     </div>
     <div class="flex items-center gap-1 relative">
-      <button onclick={newChat} class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1" title="New chat">
+      <button onclick={newChat} class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1" title={t('ai.newChat')}>
         <i class="ph ph-plus-circle text-lg"></i>
       </button>
       {#if isSavedChat}
         <button
           onclick={() => deleteChat(activeChat.id)}
           class="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors p-1"
-          title="Delete chat"
+          title={t('ai.deleteChat')}
         >
           <i class="ph ph-trash text-lg"></i>
         </button>
@@ -172,7 +173,7 @@
       <button
         onclick={() => showChatsMenu = !showChatsMenu}
         class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1"
-        title="Recent chats"
+        title={t('ai.recentChats')}
       >
         <i class="ph ph-clock-counter-clockwise text-lg"></i>
       </button>
@@ -180,7 +181,7 @@
         <div role="presentation" class="fixed inset-0 z-10" onclick={() => showChatsMenu = false}></div>
         <div class="absolute right-0 top-full mt-1 w-64 max-w-[calc(100vw_-_1.5rem)] max-h-[min(20rem,60vh)] overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-20">
           {#if recentChats.length === 0}
-            <p class="text-xs text-slate-400 dark:text-slate-500 px-3 py-3 text-center">No chats yet</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 px-3 py-3 text-center">{t('ai.noChatsYet')}</p>
           {:else}
             {#each recentChats as chat}
               <div class="flex items-center group {chat.id === activeChat.id ? 'bg-slate-100 dark:bg-slate-700' : ''} hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
@@ -193,8 +194,8 @@
                 <button
                   onclick={() => deleteChat(chat.id)}
                   class="flex-shrink-0 px-2 py-2 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-                  title="Delete chat"
-                  aria-label="Delete chat"
+                  title={t('ai.deleteChat')}
+                  aria-label={t('ai.deleteChat')}
                 >
                   <i class="ph ph-trash"></i>
                 </button>
@@ -204,7 +205,7 @@
         </div>
       {/if}
       {#if !embedded}
-        <button onclick={() => onclose?.()} class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1" aria-label="Close chat">
+        <button onclick={() => onclose?.()} class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1" aria-label={t('ai.closeChat')}>
           <i class="ph ph-x text-xl"></i>
         </button>
       {/if}
@@ -244,7 +245,7 @@
         <button
           onclick={() => pickerOpen = !pickerOpen}
           class="flex items-center gap-1 min-w-0 max-w-[13rem] px-1.5 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300 cursor-pointer"
-          title="Ledger the AI reads and modifies"
+          title={t('ai.ledgerTitle')}
         >
           <i class="ph {aiSpace ? 'ph-users-three' : 'ph-user'} text-slate-400 dark:text-slate-500"></i>
           <span class="truncate">{contextLabel}</span>
@@ -258,7 +259,7 @@
               class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors {!pinnedSpaceId ? 'text-blue-600 font-medium' : 'text-slate-700 dark:text-slate-200'}"
             >
               <i class="ph ph-user"></i>
-              <span class="truncate">Personal</span>
+              <span class="truncate">{t('header.personal')}</span>
               {#if !pinnedSpaceId}
                 <i class="ph ph-check text-blue-600 ml-auto flex-shrink-0"></i>
               {/if}
@@ -278,7 +279,7 @@
           </div>
         {/if}
       </div>
-      <span class="flex-shrink-0">This week: {weeklyRemaining} left</span>
+      <span class="flex-shrink-0">{t('ai.weekLeft', { count: weeklyRemaining })}</span>
     </div>
 
     {#if activeChat.messages.length === 0}
@@ -302,17 +303,17 @@
         oninput={resizeInput}
         rows={1}
         enterkeyhint="send"
-        placeholder={cooldownTimer > 0 ? `Cooldown ${cooldownTimer}s...` : aiSpace ? "Ask about your Hub's finances..." : "Ask about your finances..."}
+        placeholder={cooldownTimer > 0 ? t('ai.cooldown', { seconds: cooldownTimer }) : aiSpace ? t('ai.askAboutHub') : t('ai.askAbout')}
         disabled={sending || cooldownTimer > 0}
         class="w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none disabled:opacity-50"
       ></textarea>
       <div class="flex items-center justify-between gap-2 px-2 pb-1.5">
-        <span class="hidden sm:inline pl-1 text-[10px] text-slate-400 dark:text-slate-500">Enter to send · Shift+Enter for a new line</span>
+        <span class="hidden sm:inline pl-1 text-[10px] text-slate-400 dark:text-slate-500">{t('ai.sendHint')}</span>
         <div class="flex items-center gap-1.5 ml-auto">
           <button
             onclick={send}
             disabled={!input.trim() || sending || cooldownTimer > 0}
-            aria-label="Send message"
+            aria-label={t('ai.sendMessage')}
             class="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all {!input.trim() || cooldownTimer > 0 ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}"
           >
             {#if sending}

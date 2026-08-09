@@ -4,6 +4,7 @@
   import { getCurrentCurrency } from '../lib/state.svelte.js';
   import { formatDate } from '../lib/utils.js';
   import { convertToDisplayCurrency, getCurrencySymbol } from '../lib/currency.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let { item, options, onedit, ondelete } = $props();
 
@@ -27,13 +28,13 @@
       : (categoryIcons[item.category] || categoryIcons['Other'])
   );
 
-  const frequencyLabels: Record<string, string> = {
-    daily: 'Daily',
-    weekly: 'Weekly',
-    biweekly: 'Bi-weekly',
-    monthly: 'Monthly',
-    yearly: 'Yearly',
-  };
+  const frequencyLabels = $derived<Record<string, string>>({
+    daily: t('freq.daily'),
+    weekly: t('freq.weekly'),
+    biweekly: t('freq.biweekly'),
+    monthly: t('freq.monthly'),
+    yearly: t('freq.yearly'),
+  });
 </script>
 
 <li class="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors animate-fade-in">
@@ -79,10 +80,10 @@
         {/if}
       </p>
     </div>
-    <button onclick={() => onedit?.(item)} class="text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" aria-label="Edit">
+    <button onclick={() => onedit?.(item)} class="text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" aria-label={t('common.edit')}>
       <i class="ph ph-pencil-simple text-sm"></i>
     </button>
-    <button onclick={() => ondelete?.(item.id)} class="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors" aria-label="Delete">
+    <button onclick={() => ondelete?.(item.id)} class="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors" aria-label={t('common.delete')}>
       <i class="ph ph-trash text-sm"></i>
     </button>
   </div>

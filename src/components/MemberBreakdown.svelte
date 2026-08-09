@@ -1,6 +1,7 @@
 <script lang="ts">
   import { chartColors } from '../lib/constants.js';
   import { getCurrencySymbol } from '../lib/currency.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let { memberData = [], total = 0, currency = 'USD' } = $props();
 
@@ -14,7 +15,7 @@
 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 animate-fade-in">
   <div class="flex items-center gap-2 mb-4">
     <i class="ph ph-users-three text-blue-600"></i>
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Contributions by Member</h2>
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('charts.contributionsByMember')}</h2>
   </div>
   <div class="space-y-3">
     {#each members as member, i}
@@ -37,7 +38,7 @@
       </div>
     {/each}
     {#if members.length === 0}
-      <p class="text-slate-400 dark:text-slate-500 text-sm text-center py-4">No contributions yet</p>
+      <p class="text-slate-400 dark:text-slate-500 text-sm text-center py-4">{t('charts.noContributionsYet')}</p>
     {/if}
   </div>
 </div>

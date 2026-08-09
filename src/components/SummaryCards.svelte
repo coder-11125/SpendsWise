@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getCurrencySymbol } from '../lib/currency.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let { summary = { income: 0, expenses: 0, balance: 0 }, currency = 'USD' } = $props();
 
@@ -14,7 +15,7 @@
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in">
   <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
     <div class="flex items-center justify-between mb-2">
-      <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Balance</p>
+      <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">{t('cards.totalBalance')}</p>
       <div class="bg-blue-50 dark:bg-blue-900/30 p-2 rounded-lg">
         <i class="ph ph-wallet text-lg text-blue-600 dark:text-blue-400"></i>
       </div>
@@ -25,7 +26,7 @@
 
   <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
     <div class="flex items-center justify-between mb-2">
-      <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Income</p>
+      <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">{t('cards.totalIncome')}</p>
       <div class="bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-lg">
         <i class="ph ph-trend-up text-lg text-emerald-600 dark:text-emerald-400"></i>
       </div>
@@ -36,7 +37,7 @@
 
   <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
     <div class="flex items-center justify-between mb-2">
-      <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Expense</p>
+      <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">{t('cards.totalExpense')}</p>
       <div class="bg-rose-50 dark:bg-rose-900/30 p-2 rounded-lg">
         <i class="ph ph-trend-down text-lg text-rose-600 dark:text-rose-400"></i>
       </div>

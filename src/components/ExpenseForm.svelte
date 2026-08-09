@@ -3,6 +3,7 @@
   import { saveTransaction, parseReceiptsBulk, switchSpace, uploadBulkExpenses, loadExpenses } from '../lib/api.js';
   import { getAllCategories, getSpaces, getCurrentSpaceId } from '../lib/state.svelte.js';
   import { compressImageToDataUrl } from '../lib/utils.js';
+  import { t } from '../lib/i18n.svelte.js';
   import type { Expense, Recurrence } from '../types.js';
   import BulkImportModal from './BulkImportModal.svelte';
   import CategorySelect from './CategorySelect.svelte';
@@ -133,11 +134,11 @@
     const files = Array.from(target.files ?? []);
     if (!files.length) return;
     receiptProcessing = true;
-    receiptProgress = `Compressing ${files.length} receipt${files.length > 1 ? 's' : ''}...`;
+    receiptProgress = t('form.compressingReceipts', { count: files.length });
     const dataUrls = await Promise.all(
       files.map((f: File) => compressImageToDataUrl(f, 1920, 0.7))
     );
-    receiptProgress = `Processing ${dataUrls.length} receipt${dataUrls.length > 1 ? 's' : ''}...`;
+    receiptProgress = t('form.processingReceipts', { count: dataUrls.length });
     try {
       const data = await parseReceiptsBulk(dataUrls, ocrPro);
       receiptProgress = '';
@@ -159,12 +160,12 @@
         parsedReceipts = flat;
         showBulkModal = true;
       } else {
-        alert('Could not extract data from any of the receipts.');
+        alert(t('form.noReceiptData'));
       }
     } catch (err) {
       console.error('Bulk receipt parse failed:', err);
       receiptProgress = '';
-      alert('Failed to process receipts. Please try again.');
+      alert(t('form.receiptFailed'));
     }
     receiptProcessing = false;
     target.value = '';
@@ -185,7 +186,7 @@
       const text = await file.text();
       const lines = text.trim().split('\n');
       if (lines.length < 2) {
-        csvResult = { success: false, message: 'CSV file is empty or has no data rows.' };
+        csvResult = { success: false, message: t('form.csvEmpty') };
         return;
       }
       const headers = lines[0].split(',').map((h: string) => h.trim().toLowerCase());
@@ -197,9 +198,9 @@
       });
       const res = await uploadBulkExpenses(rows);
       await loadExpenses();
-      csvResult = { success: true, message: `Successfully imported ${res.count || rows.length} item(s).` };
+      csvResult = { success: true, message: t('form.csvImported', { count: res.count || rows.length }) };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to import CSV.';
+      const errorMessage = err instanceof Error ? err.message : t('form.csvImportFailed');
       csvResult = { success: false, message: errorMessage };
     } finally {
       csvImporting = false;
@@ -230,23 +231,23 @@
 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 animate-fade-in">
   <div class="flex items-center gap-2 mb-6">
     <i class="ph ph-plus-circle text-xl text-blue-600"></i>
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Add Transaction</h2>
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('form.addTransaction')}</h2>
   </div>
 
   <div class="flex gap-4 mb-4">
     <label class="flex items-center gap-2 cursor-pointer">
       <input type="radio" bind:group={type} value="expense" class="text-rose-500 focus:ring-rose-400" />
-      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Expense</span>
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{t('type.expense')}</span>
     </label>
     <label class="flex items-center gap-2 cursor-pointer">
       <input type="radio" bind:group={type} value="income" class="text-emerald-500 focus:ring-emerald-400" />
-      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Income</span>
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{t('type.income')}</span>
     </label>
   </div>
 
   {#if spaces.length > 0}
     <div class="mb-4">
-      <label for="expense-space" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Space</label>
+      <label for="expense-space" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('form.space')}</label>
       <select
         id="expense-space"
         value={currentSpaceId ?? ''}
@@ -254,7 +255,7 @@
         disabled={switchingSpace}
         class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none disabled:opacity-60"
       >
-        <option value="">Personal</option>
+        <option value="">{t('header.personal')}</option>
         {#each spaces as space}
           <option value={space.id}>{space.name}</option>
         {/each}
@@ -264,12 +265,12 @@
 
   <div class="space-y-4">
     <div>
-      <label for="expense-amount" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Amount</label>
+      <label for="expense-amount" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('form.amount')}</label>
       <input id="expense-amount" type="number" step="0.01" bind:value={amount} placeholder="0.00" class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />
     </div>
 
     <div>
-      <label for="expense-category" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Type</label>
+      <label for="expense-category" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('form.categoryType')}</label>
       <CategorySelect
         id="expense-category"
         type={type}
@@ -279,13 +280,13 @@
     </div>
 
     <div>
-      <label for="expense-date" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date</label>
+      <label for="expense-date" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('form.date')}</label>
       <input id="expense-date" bind:this={dateInputEl} type="text" bind:value={date} class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />
     </div>
 
     <div>
-      <label for="expense-note" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Note</label>
-      <input id="expense-note" type="text" bind:value={note} placeholder="Optional note..." class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />
+      <label for="expense-note" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('form.note')}</label>
+      <input id="expense-note" type="text" bind:value={note} placeholder={t('form.optionalNote')} class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />
     </div>
 
     <!-- Recurrence Toggle -->
@@ -293,9 +294,9 @@
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2">
           <i class="ph ph-repeat text-blue-600"></i>
-          <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Recurring Transaction</span>
+          <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{t('form.recurringTransaction')}</span>
         </div>
-        <button type="button" onclick={() => isRecurring = !isRecurring} aria-label="Toggle recurring transaction"
+        <button type="button" onclick={() => isRecurring = !isRecurring} aria-label={t('form.recurringTransaction')}
           class="relative w-10 h-5 rounded-full transition-colors {isRecurring ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}">
           <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform {isRecurring ? 'translate-x-5' : ''}"></div>
         </button>
@@ -303,14 +304,14 @@
       {#if isRecurring}
         <div class="space-y-3 mt-3 animate-fade-in">
           <div>
-            <label for="expense-frequency" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Frequency</label>
+            <label for="expense-frequency" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{t('form.frequency')}</label>
             <div class="flex gap-1">
               {#each [
-                { v: 'daily' as const, l: 'Daily' },
-                { v: 'weekly' as const, l: 'Weekly' },
-                { v: 'biweekly' as const, l: 'Bi-weekly' },
-                { v: 'monthly' as const, l: 'Monthly' },
-                { v: 'yearly' as const, l: 'Yearly' }
+                { v: 'daily' as const, l: t('freq.daily') },
+                { v: 'weekly' as const, l: t('freq.weekly') },
+                { v: 'biweekly' as const, l: t('freq.biweekly') },
+                { v: 'monthly' as const, l: t('freq.monthly') },
+                { v: 'yearly' as const, l: t('freq.yearly') }
               ] as opt}
                 <button type="button" onclick={() => recurrenceFrequency = opt.v}
                   class="px-2.5 py-1 text-xs rounded-md font-medium transition-colors {recurrenceFrequency === opt.v ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-500'}">
@@ -320,8 +321,8 @@
             </div>
           </div>
           <div>
-            <label for="expense-enddate" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">End Date (optional)</label>
-            <input id="expense-enddate" bind:this={endDateInputEl} type="text" bind:value={recurrenceEndDate} placeholder="No end date"
+            <label for="expense-enddate" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{t('form.endDateOptional')}</label>
+            <input id="expense-enddate" bind:this={endDateInputEl} type="text" bind:value={recurrenceEndDate} placeholder={t('form.noEndDate')}
               class="input-field w-full px-3 py-1.5 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-md text-slate-800 dark:text-slate-100 text-xs focus:outline-none" />
           </div>
         </div>
@@ -332,34 +333,34 @@
       {#if submitting}
         <i class="ph ph-circle-notch animate-spin"></i>
       {/if}
-      Add {type === 'expense' ? 'Expense' : 'Income'}
+      {t('form.add', { type: type === 'expense' ? t('type.expense') : t('type.income') })}
     </button>
   </div>
 
   <div class="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700">
     <div class="flex items-center gap-2 mb-3">
       <i class="ph ph-lightning text-blue-600"></i>
-      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">Quick Add</h3>
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('form.quickAdd')}</h3>
     </div>
     <div>
       <button onclick={triggerReceiptUpload} disabled={receiptProcessing} class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer disabled:text-slate-300">
         <i class="ph ph-camera"></i>
-        <span>{receiptProcessing ? 'Importing...' : 'Import Receipts'}</span>
+        <span>{receiptProcessing ? t('form.importing') : t('form.importReceipts')}</span>
       </button>
       <div class="flex gap-2 mt-2">
         <label class="flex-1 flex flex-col gap-0.5 cursor-pointer border rounded-lg px-3 py-2 transition-colors {!ocrPro ? 'border-blue-300 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-slate-600'}">
           <span class="flex items-center gap-1.5">
             <input type="radio" name="ocrMode" checked={!ocrPro} onchange={() => ocrPro = false} class="text-blue-600 focus:ring-blue-500" />
-            <span class="text-xs font-medium text-slate-700 dark:text-slate-200">Basic OCR <span class="text-slate-400 dark:text-slate-500 font-normal">(3 credits)</span></span>
+            <span class="text-xs font-medium text-slate-700 dark:text-slate-200">{t('form.basicOcr', { count: 3 })}</span>
           </span>
-          <span class="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">Good OCR capabilities at least amount of quota</span>
+          <span class="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">{t('form.basicOcrDesc')}</span>
         </label>
         <label class="flex-1 flex flex-col gap-0.5 cursor-pointer border rounded-lg px-3 py-2 transition-colors {ocrPro ? 'border-blue-300 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-slate-600'}">
           <span class="flex items-center gap-1.5">
             <input type="radio" name="ocrMode" checked={ocrPro} onchange={() => ocrPro = true} class="text-blue-600 focus:ring-blue-500" />
-            <span class="text-xs font-medium text-slate-700 dark:text-slate-200">OCR Pro <span class="text-slate-400 dark:text-slate-500 font-normal">(6 credits)</span></span>
+            <span class="text-xs font-medium text-slate-700 dark:text-slate-200">{t('form.proOcr', { count: 6 })}</span>
           </span>
-          <span class="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">Extreme OCR capabilities. Use sparingly for messy, handwritten receipts in low light</span>
+          <span class="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">{t('form.proOcrDesc')}</span>
         </label>
       </div>
       <input bind:this={receiptInput} type="file" accept="image/*" multiple class="hidden" onchange={handleBulkReceiptUpload} />
@@ -375,13 +376,13 @@
     <div class="mt-4">
       <button onclick={triggerCsvImport} disabled={csvImporting} class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer disabled:text-slate-300">
         <i class="ph ph-file-csv"></i>
-        <span>{csvImporting ? 'Importing...' : 'Import CSV'}</span>
+        <span>{csvImporting ? t('form.importing') : t('form.importCsv')}</span>
       </button>
       <input bind:this={csvFileInput} type="file" accept=".csv" class="hidden" onchange={handleCsvFileSelect} />
       {#if csvImporting}
         <div class="flex items-center gap-2 text-sm text-slate-500 mt-2">
           <i class="ph ph-circle-notch animate-spin"></i>
-          <span>Importing CSV...</span>
+          <span>{t('form.importingCsv')}</span>
         </div>
       {/if}
       {#if csvResult}
@@ -393,9 +394,9 @@
           {/if}
           {csvResult.message}
           {#if csvResult.success}
-            <button onclick={() => csvResult = null} class="ml-2 text-blue-600 hover:underline">OK</button>
+            <button onclick={() => csvResult = null} class="ml-2 text-blue-600 hover:underline">{t('common.ok')}</button>
           {:else}
-            <button onclick={() => csvResult = null} class="ml-2 text-blue-600 hover:underline">Dismiss</button>
+            <button onclick={() => csvResult = null} class="ml-2 text-blue-600 hover:underline">{t('common.dismiss')}</button>
           {/if}
         </div>
       {/if}

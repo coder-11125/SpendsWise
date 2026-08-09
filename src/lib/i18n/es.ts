@@ -11,6 +11,7 @@ export const es: Dict = {
   "common.done": "Listo",
   "common.save": "Guardar",
   "common.delete": "Eliminar",
+  "common.edit": "Editar",
   "common.add": "Agregar",
   "common.loading": "Cargando...",
   "common.unknownError": "Error desconocido",
@@ -268,6 +269,7 @@ export const es: Dict = {
   "charts.noExpenseData": "Sin datos de gastos para este período",
   "charts.trend": "Tendencia de gastos",
   "charts.noExpenseDataFor": "Sin datos de gastos para {period}",
+  "charts.thisPeriod": "este periodo",
   "charts.contributionsByMember": "Aportes por miembro",
   "charts.noContributionsYet": "Aún no hay aportes",
 
@@ -345,4 +347,8 @@ export const es: Dict = {
 
   // ---- Hub invite modal ----
   "invite.title": { one: "Invitación al Espacio", other: "Invitaciones al Espacio" },
+  "invite.invitedYouTo": "te invitó a",
+  "invite.accept": "Aceptar",
+  "invite.decline": "Rechazar",
+  "invite.respondFailed": "No se pudo responder a la invitación.",
 };

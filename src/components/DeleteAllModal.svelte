@@ -1,6 +1,7 @@
 <script lang="ts">
   import { deleteAllExpenses } from '../lib/api.js';
   import { setExpense } from '../lib/state.svelte.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let { onclose, onconfirm } = $props();
 
@@ -15,7 +16,7 @@
       setExpense([]);
       onconfirm?.();
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to delete expenses.';
+      error = err instanceof Error ? err.message : t('deleteAll.failed');
     } finally {
       loading = false;
     }
@@ -28,10 +29,10 @@
       <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
         <i class="ph ph-warning-circle text-rose-600 text-xl"></i>
       </div>
-      <h2 class="text-lg font-bold text-slate-800">Delete All Expenses?</h2>
+      <h2 class="text-lg font-bold text-slate-800">{t('deleteAll.title')}</h2>
     </div>
 
-    <p class="text-sm text-slate-600 mb-6">This action cannot be undone. All your expenses and income entries will be permanently removed.</p>
+    <p class="text-sm text-slate-600 mb-6">{t('deleteAll.description')}</p>
 
     {#if error}
       <p class="text-sm text-rose-600 bg-rose-50 px-3 py-2 rounded-lg mb-4">{error}</p>
@@ -42,7 +43,7 @@
         onclick={() => onclose?.()}
         disabled={loading}
         class="flex-1 py-2.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 disabled:opacity-50 transition-colors"
-      >Cancel</button>
+      >{t('common.cancel')}</button>
       <button
         onclick={handleDelete}
         disabled={loading}
@@ -50,10 +51,10 @@
       >
         {#if loading}
           <i class="ph ph-spinner animate-spin"></i>
-          Deleting...
+          {t('deleteAll.deleting')}
         {:else}
           <i class="ph ph-trash"></i>
-          Delete All
+          {t('deleteAll.deleteAll')}
         {/if}
       </button>
     </div>

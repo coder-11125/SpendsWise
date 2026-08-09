@@ -3,6 +3,7 @@
   import { updateExpenseOnServer } from '../lib/api.js';
   import { updateExpenseItem, getCurrentCurrency } from '../lib/state.svelte.js';
   import { categoryIcons } from '../lib/constants.js';
+  import { t } from '../lib/i18n.svelte.js';
   import type { Expense, Recurrence } from '../types.js';
   import CategorySelect from './CategorySelect.svelte';
 
@@ -79,7 +80,7 @@
     if (!expenseItem) return;
     error = '';
     if (!type || Number.isNaN(amount) || !category || !date) {
-      error = 'Please fill in all required fields.';
+      error = t('form.fillRequired');
       return;
     }
     loading = true;
@@ -104,7 +105,7 @@
       updateExpenseItem(updated);
       onsaved?.();
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Unknown error';
+      error = err instanceof Error ? err.message : t('common.unknownError');
     } finally {
       loading = false;
     }
@@ -115,29 +116,29 @@
   <div role="presentation" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in" onclick={(e) => { if (e.target === e.currentTarget) onclose?.(); }}>
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold text-slate-800">Edit Expense</h2>
-        <button aria-label="Close" onclick={() => onclose?.()} class="text-slate-400 hover:text-slate-600 transition-colors">
+        <h2 class="text-lg font-bold text-slate-800">{t('edit.title')}</h2>
+        <button aria-label={t('edit.closeAria')} onclick={() => onclose?.()} class="text-slate-400 hover:text-slate-600 transition-colors">
           <i class="ph ph-x text-xl"></i>
         </button>
       </div>
 
       <form onsubmit={handleSubmit} class="space-y-4">
         <div>
-          <label for="edit-type" class="block text-sm font-medium text-slate-700 mb-2">Type</label>
+          <label for="edit-type" class="block text-sm font-medium text-slate-700 mb-2">{t('form.categoryType')}</label>
           <div class="flex gap-3">
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" name="editType" value="expense" bind:group={type} class="text-rose-500 focus:ring-rose-500" />
-              <span class="text-sm text-slate-700">Expense</span>
+              <span class="text-sm text-slate-700">{t('type.expense')}</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" name="editType" value="income" bind:group={type} class="text-emerald-500 focus:ring-emerald-500" />
-              <span class="text-sm text-slate-700">Income</span>
+              <span class="text-sm text-slate-700">{t('type.income')}</span>
             </label>
           </div>
         </div>
 
         <div>
-          <label for="editAmount" class="block text-sm font-medium text-slate-700 mb-1">Amount</label>
+          <label for="editAmount" class="block text-sm font-medium text-slate-700 mb-1">{t('form.amount')}</label>
           <div class="relative">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">$</span>
             <input
@@ -153,7 +154,7 @@
         </div>
 
         <div>
-          <label for="editCategory" class="block text-sm font-medium text-slate-700 mb-1">Type</label>
+          <label for="editCategory" class="block text-sm font-medium text-slate-700 mb-1">{t('form.categoryType')}</label>
           <CategorySelect
             id="editCategory"
             type={type}
@@ -163,7 +164,7 @@
         </div>
 
         <div>
-          <label for="editDate" class="block text-sm font-medium text-slate-700 mb-1">Date</label>
+          <label for="editDate" class="block text-sm font-medium text-slate-700 mb-1">{t('form.date')}</label>
           <input
             id="editDate"
             bind:this={dateInput}
@@ -173,12 +174,12 @@
         </div>
 
         <div>
-          <label for="editNote" class="block text-sm font-medium text-slate-700 mb-1">Note</label>
+          <label for="editNote" class="block text-sm font-medium text-slate-700 mb-1">{t('form.note')}</label>
           <input
             id="editNote"
             type="text"
             bind:value={note}
-            placeholder="Optional note..."
+            placeholder={t('form.optionalNote')}
             class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
@@ -188,9 +189,9 @@
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-2">
               <i class="ph ph-repeat text-blue-600"></i>
-              <span class="text-sm font-medium text-slate-700">Recurring Transaction</span>
+              <span class="text-sm font-medium text-slate-700">{t('form.recurringTransaction')}</span>
             </div>
-            <button type="button" onclick={() => hasRecurrence = !hasRecurrence} aria-label="Toggle recurring transaction"
+            <button type="button" onclick={() => hasRecurrence = !hasRecurrence} aria-label={t('form.recurringTransaction')}
               class="relative w-10 h-5 rounded-full transition-colors {hasRecurrence ? 'bg-blue-600' : 'bg-slate-300'}">
               <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform {hasRecurrence ? 'translate-x-5' : ''}"></div>
             </button>
@@ -198,14 +199,14 @@
           {#if hasRecurrence}
             <div class="space-y-3 mt-3 animate-fade-in">
               <div>
-                <label for="edit-frequency" class="block text-xs font-medium text-slate-500 mb-1">Frequency</label>
+                <label for="edit-frequency" class="block text-xs font-medium text-slate-500 mb-1">{t('form.frequency')}</label>
                 <div class="flex gap-1">
                   {#each [
-                    { v: 'daily' as const, l: 'Daily' },
-                    { v: 'weekly' as const, l: 'Weekly' },
-                    { v: 'biweekly' as const, l: 'Bi-weekly' },
-                    { v: 'monthly' as const, l: 'Monthly' },
-                    { v: 'yearly' as const, l: 'Yearly' }
+                    { v: 'daily' as const, l: t('freq.daily') },
+                    { v: 'weekly' as const, l: t('freq.weekly') },
+                    { v: 'biweekly' as const, l: t('freq.biweekly') },
+                    { v: 'monthly' as const, l: t('freq.monthly') },
+                    { v: 'yearly' as const, l: t('freq.yearly') }
                   ] as opt}
                     <button type="button" onclick={() => recurrenceFrequency = opt.v}
                       class="px-2.5 py-1 text-xs rounded-md font-medium transition-colors {recurrenceFrequency === opt.v ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'}">
@@ -215,8 +216,8 @@
                 </div>
               </div>
               <div>
-                <label for="edit-enddate" class="block text-xs font-medium text-slate-500 mb-1">End Date (optional)</label>
-                <input id="edit-enddate" bind:this={endDateInput} type="text" bind:value={recurrenceEndDate} placeholder="No end date"
+                <label for="edit-enddate" class="block text-xs font-medium text-slate-500 mb-1">{t('form.endDateOptional')}</label>
+                <input id="edit-enddate" bind:this={endDateInput} type="text" bind:value={recurrenceEndDate} placeholder={t('form.noEndDate')}
                   class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md text-slate-800 text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
             </div>
@@ -234,10 +235,10 @@
         >
           {#if loading}
             <i class="ph ph-spinner animate-spin"></i>
-            Saving...
+            {t('edit.saving')}
           {:else}
             <i class="ph ph-floppy-disk"></i>
-            Save Changes
+            {t('edit.saveChanges')}
           {/if}
         </button>
       </form>

@@ -32,9 +32,10 @@ function detectLocale(): Locale {
 
 let locale = $state<Locale>(detectLocale());
 
-if (typeof document !== "undefined") {
-  document.documentElement.lang = locale;
+function syncDocumentLang() {
+  if (typeof document !== "undefined") document.documentElement.lang = locale;
 }
+syncDocumentLang();
 
 export function getLocale(): Locale {
   return locale;

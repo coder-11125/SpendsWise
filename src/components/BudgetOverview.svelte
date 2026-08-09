@@ -3,6 +3,7 @@
   import { getBudgetGoals, getExpense, getCurrentCurrency } from '../lib/state.svelte.js';
   import { getCurrentMonthExpenseByCategory } from '../lib/calculations.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let budgetGoals = $derived(getBudgetGoals());
   let expense = $derived(getExpense());
@@ -29,7 +30,7 @@
   <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 animate-fade-in">
     <div class="flex items-center gap-2 mb-4">
       <i class="ph ph-target text-blue-600"></i>
-      <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Budget Overview</h2>
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('budget.overview')}</h2>
     </div>
     <div class="space-y-4">
       {#each goalEntries as [category, goal]}
@@ -52,7 +53,7 @@
             ></div>
           </div>
           <p class="text-xs text-right mt-0.5 {isOver ? 'text-rose-500' : 'text-slate-400 dark:text-slate-500'}">
-            {percentage.toFixed(0)}% {isOver ? 'exceeded' : 'used'}
+            {t(isOver ? 'budget.exceeded' : 'budget.used', { percent: percentage.toFixed(0) })}
           </p>
         </div>
       {/each}

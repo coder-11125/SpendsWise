@@ -11,6 +11,7 @@ export const en: Dict = {
   "common.done": "Done",
   "common.save": "Save",
   "common.delete": "Delete",
+  "common.edit": "Edit",
   "common.add": "Add",
   "common.loading": "Loading...",
   "common.unknownError": "Unknown error",
@@ -268,6 +269,7 @@ export const en: Dict = {
   "charts.noExpenseData": "No expense data for this period",
   "charts.trend": "Expense Trend",
   "charts.noExpenseDataFor": "No expense data for {period}",
+  "charts.thisPeriod": "this period",
   "charts.contributionsByMember": "Contributions by Member",
   "charts.noContributionsYet": "No contributions yet",
 
@@ -345,4 +347,8 @@ export const en: Dict = {
 
   // ---- Hub invite modal ----
   "invite.title": { one: "Hub Invite", other: "Hub Invites" },
+  "invite.invitedYouTo": "invited you to",
+  "invite.accept": "Accept",
+  "invite.decline": "Decline",
+  "invite.respondFailed": "Failed to respond to invite.",
 };

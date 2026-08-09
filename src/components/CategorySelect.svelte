@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getAllCategories, getCustomCategories, addCustomCategory, removeCustomCategory, confirmDialog } from '../lib/state.svelte.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let { type = 'expense', value = $bindable(''), selectClass = '', id = '' } = $props();
 
@@ -15,7 +16,7 @@
 
   async function deleteSelected() {
     if (!isCustomSelected) return;
-    if (!await confirmDialog(`Delete category "${value}"?`)) return;
+    if (!await confirmDialog(t('category.deleteConfirm', { name: value }))) return;
     removeCustomCategory(type, value);
     value = '';
   }
@@ -58,14 +59,14 @@
       bind:this={inputEl}
       bind:value={newCategory}
       type="text"
-      placeholder="New category name"
+      placeholder={t('category.newCategoryPlaceholder')}
       onkeydown={handleKeydown}
       class={selectClass}
     />
-    <button type="button" onclick={confirmAdd} title="Add category" class="px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm cursor-pointer">
+    <button type="button" onclick={confirmAdd} title={t('category.addCategory')} class="px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm cursor-pointer">
       <i class="ph ph-check"></i>
     </button>
-    <button type="button" onclick={cancelAdd} title="Cancel" class="px-3 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-sm cursor-pointer">
+    <button type="button" onclick={cancelAdd} title={t('common.cancel')} class="px-3 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-sm cursor-pointer">
       <i class="ph ph-x"></i>
     </button>
   </div>
@@ -73,15 +74,15 @@
   <div class="flex gap-2">
     <select {id} {value} onchange={handleChange} class={selectClass}>
       {#if !value}
-        <option value="" disabled>Select category</option>
+        <option value="" disabled>{t('category.selectCategory')}</option>
       {/if}
       {#each categories as cat}
         <option value={cat}>{cat}</option>
       {/each}
-      <option value="__add__">+ Add new category…</option>
+      <option value="__add__">{t('category.addNewCategory')}</option>
     </select>
     {#if isCustomSelected}
-      <button type="button" onclick={deleteSelected} title="Delete custom category" class="px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm cursor-pointer">
+      <button type="button" onclick={deleteSelected} title={t('category.deleteCustomCategory')} class="px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm cursor-pointer">
         <i class="ph ph-trash"></i>
       </button>
     {/if}

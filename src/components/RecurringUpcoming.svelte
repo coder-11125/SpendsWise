@@ -3,18 +3,19 @@
   import { getCurrentCurrency } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
   import { loadRecurringExpenses, updateRecurring } from '../lib/api.js';
+  import { t, getLocale } from '../lib/i18n.svelte.js';
   import type { Expense } from '../types.js';
 
   let recurring = $state<Expense[]>([]);
   let loading = $state(true);
 
-  const frequencyLabels: Record<string, string> = {
-    daily: 'Daily',
-    weekly: 'Weekly',
-    biweekly: 'Bi-weekly',
-    monthly: 'Monthly',
-    yearly: 'Yearly',
-  };
+  const frequencyLabels = $derived<Record<string, string>>({
+    daily: t('freq.daily'),
+    weekly: t('freq.weekly'),
+    biweekly: t('freq.biweekly'),
+    monthly: t('freq.monthly'),
+    yearly: t('freq.yearly'),
+  });
 
   const frequencyIcons: Record<string, string> = {
     daily: 'ph-sun',
@@ -51,11 +52,11 @@
     const diffMs = due.getTime() - today.getTime();
     const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return 'Overdue';
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Tomorrow';
-    if (diffDays <= 7) return `In ${diffDays} days`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (diffDays < 0) return t('recurring.overdue');
+    if (diffDays === 0) return t('recurring.today');
+    if (diffDays === 1) return t('recurring.tomorrow');
+    if (diffDays <= 7) return t('recurring.inDays', { count: diffDays });
+    return new Date(date).toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' });
   }
 
   function dueDateClass(dateStr: string): string {
@@ -109,11 +110,11 @@
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
         <i class="ph ph-repeat text-blue-600 text-lg"></i>
-        <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Recurring Transactions</h2>
+        <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('recurring.title')}</h2>
       </div>
       {#if activeRecurring.length > 0}
         <div class="text-right">
-          <p class="text-xs text-slate-500 dark:text-slate-400">Est. Monthly</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">{t('recurring.estMonthly')}</p>
           <p class="text-sm font-semibold text-blue-600 dark:text-blue-400">
             {getCurrencySymbol(getCurrentCurrency())}{totalMonthly.toFixed(2)}
           </p>
@@ -137,9 +138,9 @@
                   </span>
                 </div>
                 <p class="text-xs {dueDateClass(item.recurrence?.nextDueDate || '')}">
-                  Next: {formatDueDate(item.recurrence?.nextDueDate || '')}
+                  {t('recurring.next', { date: formatDueDate(item.recurrence?.nextDueDate || '') })}
                   {#if item.recurrence?.endDate}
-                    &middot; Ends {new Date(item.recurrence.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    &middot; {t('recurring.ends', { date: new Date(item.recurrence.endDate).toLocaleDateString(getLocale(), { month: 'short', day: 'numeric', year: 'numeric' }) })}
                   {/if}
                 </p>
               </div>
@@ -148,7 +149,7 @@
               <span class="text-sm font-semibold text-rose-600 dark:text-rose-400">
                 {getCurrencySymbol(getCurrentCurrency())}{item.amount.toFixed(2)}
               </span>
-              <button onclick={() => handlePause(item)} class="text-slate-400 hover:text-amber-600 transition-colors p-1" title="Pause">
+              <button onclick={() => handlePause(item)} class="text-slate-400 hover:text-amber-600 transition-colors p-1" title={t('recurring.pause')}>
                 <i class="ph ph-pause text-sm"></i>
               </button>
             </div>
@@ -159,7 +160,7 @@
 
     {#if pausedRecurring.length > 0}
       <div class="border-t border-slate-100 dark:border-slate-700 pt-3 mt-3">
-        <p class="text-xs text-slate-400 dark:text-slate-500 mb-2 font-medium uppercase tracking-wider">Paused</p>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-2 font-medium uppercase tracking-wider">{t('recurring.paused')}</p>
         <div class="space-y-2">
           {#each pausedRecurring as item (item.id)}
             <div class="flex items-center justify-between py-2 px-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg opacity-60">
@@ -170,7 +171,7 @@
                 <div class="min-w-0">
                   <span class="text-sm font-medium text-slate-600 dark:text-slate-400 truncate">{item.category}</span>
                   <p class="text-xs text-slate-400 dark:text-slate-500">
-                    {frequencyLabels[item.recurrence?.frequency || 'monthly']} &middot; Paused
+                    {frequencyLabels[item.recurrence?.frequency || 'monthly']} &middot; {t('recurring.paused')}
                   </p>
                 </div>
               </div>
@@ -178,7 +179,7 @@
                 <span class="text-sm text-slate-500 dark:text-slate-400">
                   {getCurrencySymbol(getCurrentCurrency())}{item.amount.toFixed(2)}
                 </span>
-                <button onclick={() => handleResume(item)} class="text-slate-400 hover:text-emerald-600 transition-colors p-1" title="Resume">
+                <button onclick={() => handleResume(item)} class="text-slate-400 hover:text-emerald-600 transition-colors p-1" title={t('recurring.resume')}>
                   <i class="ph ph-play text-sm"></i>
                 </button>
               </div>

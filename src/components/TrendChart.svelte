@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { renderTrendChart } from '../lib/charts.js';
+  import { t } from '../lib/i18n.svelte.js';
   import type { TrendPoint } from '../types.js';
 
   let { points = [], total = 0, average = 0, periodLabel = '', currency = 'USD', range = undefined, onRangeChange = undefined } = $props<{
@@ -13,7 +14,7 @@
     onRangeChange?: (r: string) => void;
   }>();
 
-  const rangeOptions = [{v:'day',l:'Day'},{v:'week',l:'Week'},{v:'month',l:'Month'},{v:'all',l:'All'}];
+  const rangeOptions = $derived([{v:'day',l:t('trend.day')},{v:'week',l:t('trend.week')},{v:'month',l:t('trend.month')},{v:'all',l:t('trend.all')}]);
 
   let canvasEl = $state<HTMLCanvasElement | null>(null);
   let label = $state<string>('');
@@ -52,7 +53,7 @@
   <div class="flex items-center justify-between mb-4">
     <div class="flex items-center gap-2">
       <i class="ph ph-chart-line-up text-blue-600"></i>
-      <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Expense Trend</h2>
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('charts.trend')}</h2>
     </div>
     {#if onRangeChange}
       <div class="flex gap-1">
@@ -71,6 +72,6 @@
   {/if}
   <canvas bind:this={canvasEl} class="w-full" style="height: 260px"></canvas>
   {#if isEmpty}
-    <p class="text-center text-slate-400 dark:text-slate-500 text-sm mt-2">No expense data for {periodLabel || 'this period'}</p>
+    <p class="text-center text-slate-400 dark:text-slate-500 text-sm mt-2">{t('charts.noExpenseDataFor', { period: periodLabel || t('charts.thisPeriod') })}</p>
   {/if}
 </div>
