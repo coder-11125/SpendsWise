@@ -4,6 +4,7 @@ import {
   getLocale,
   setLocale,
   formatNumber,
+  localizeServerError,
   locales,
   dictionaries,
 } from "./i18n.svelte.js";
@@ -104,6 +105,27 @@ describe("i18n", () => {
       // decimal separator is a comma and the output differs from English.
       expect(out.endsWith(",50")).toBe(true);
       expect(out).not.toBe("1,234.50");
+    });
+  });
+
+  describe("localizeServerError", () => {
+    it("passes English through in the English locale", () => {
+      setLocale("en");
+      expect(localizeServerError("Invalid credentials")).toBe("Invalid credentials");
+    });
+
+    it("translates known server errors in the Spanish locale", () => {
+      setLocale("es");
+      expect(localizeServerError("Invalid credentials")).toBe("Credenciales inválidas");
+      expect(localizeServerError("Not a member of this Hub")).toBe("No eres miembro de este Hub");
+      expect(localizeServerError("Weekly AI request limit reached. Resets Monday.")).toBe(
+        "Límite semanal de solicitudes de IA alcanzado. Se reinicia el lunes."
+      );
+    });
+
+    it("falls back to the original text for unknown messages", () => {
+      setLocale("es");
+      expect(localizeServerError("Something brand new")).toBe("Something brand new");
     });
   });
 

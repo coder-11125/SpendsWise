@@ -1,5 +1,5 @@
 import { en } from "./i18n/en.js";
-import { es } from "./i18n/es.js";
+import { es, serverErrors as esServerErrors } from "./i18n/es.js";
 import type { Dict, Message } from "./i18n/types.js";
 
 export type Locale = "en" | "es";
@@ -87,4 +87,15 @@ export function formatNumber(value: number, decimals = 2): string {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(value);
+}
+
+// Server-originated error messages are English; map them to the active UI
+// language before display. Missing entries fall back to the original text.
+const serverErrorMaps: Partial<Record<Locale, Record<string, string>>> = {
+  es: esServerErrors,
+};
+
+/** Localize a server error message for the active locale, if known. */
+export function localizeServerError(message: string): string {
+  return serverErrorMaps[locale]?.[message] ?? message;
 }
