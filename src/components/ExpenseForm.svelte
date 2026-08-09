@@ -61,7 +61,7 @@
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
-          locale: await getFlatpickrLocale(mod),
+          locale: await getFlatpickrLocale(mod.default),
           defaultDate: date,
           onChange: (selectedDates: Date[]) => {
             if (selectedDates[0]) {
@@ -84,7 +84,7 @@
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
-          locale: await getFlatpickrLocale(mod),
+          locale: await getFlatpickrLocale(mod.default),
           disableMobile: true,
           defaultDate: recurrenceEndDate || undefined,
           onChange: (selectedDates: Date[]) => {

@@ -53,7 +53,7 @@
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
-          locale: await getFlatpickrLocale(mod),
+          locale: await getFlatpickrLocale(mod.default),
           disableMobile: true,
           defaultDate: date || 'today',
         });
@@ -65,7 +65,7 @@
           dateFormat: 'Y-m-d',
           altInput: true,
           altFormat: 'd/m/Y',
-          locale: await getFlatpickrLocale(mod),
+          locale: await getFlatpickrLocale(mod.default),
           disableMobile: true,
           defaultDate: recurrenceEndDate || undefined,
           onChange: (selectedDates: Date[]) => {

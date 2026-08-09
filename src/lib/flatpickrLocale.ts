@@ -1,4 +1,8 @@
 import { getLocale } from './i18n.svelte.js';
+import type { CustomLocale } from 'flatpickr/dist/types/locale';
+import type { FlatpickrFn } from 'flatpickr/dist/types/instance';
+
+type FlatpickrFactory = Pick<FlatpickrFn, 'l10ns'>;
 
 /**
  * Resolve the flatpickr locale object for the active UI language.
@@ -9,32 +13,32 @@ import { getLocale } from './i18n.svelte.js';
  * follow the app language. The Spanish module is loaded lazily and cached.
  */
 export async function getFlatpickrLocale(
-  fp: { l10ns?: Record<string, unknown> },
+  fp: FlatpickrFactory,
   loadSpanish: () => Promise<unknown> = loadSpanishModule
-): Promise<unknown> {
+): Promise<CustomLocale | undefined> {
   const locale = getLocale();
   if (locale === 'es') {
     return getSpanishFlatpickrLocale(fp, loadSpanish);
   }
-  return fp.l10ns?.default;
+  return fp.l10ns.default;
 }
 
-let spanishLocaleCache: unknown;
+let spanishLocaleCache: CustomLocale | undefined;
 
 async function getSpanishFlatpickrLocale(
-  fp: { l10ns?: Record<string, unknown> },
+  fp: FlatpickrFactory,
   loadSpanish: () => Promise<unknown>
-): Promise<unknown> {
+): Promise<CustomLocale | undefined> {
   if (spanishLocaleCache) return spanishLocaleCache;
   try {
     const esMod = (await loadSpanish()) as {
-      Spanish?: unknown;
-      default?: { es?: unknown };
+      Spanish?: CustomLocale;
+      default?: { es?: CustomLocale };
     };
     spanishLocaleCache =
-      esMod.Spanish ?? esMod.default?.es ?? (fp.l10ns?.es as unknown) ?? fp.l10ns?.default;
+      esMod.Spanish ?? esMod.default?.es ?? fp.l10ns.es ?? fp.l10ns.default;
   } catch {
-    spanishLocaleCache = fp.l10ns?.default;
+    spanishLocaleCache = fp.l10ns.default;
   }
   return spanishLocaleCache;
 }
