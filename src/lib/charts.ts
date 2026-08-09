@@ -1,5 +1,5 @@
 import { chartColors } from './constants.js';
-import { getCurrencySymbol, compactCurrencyValue } from './currency.js';
+import { getCurrencySymbol, compactCurrencyValue, formatMoney } from './currency.js';
 import { t } from './i18n.svelte.js';
 import type { CategoryData, TrendPoint } from '../types.js';
 
@@ -9,12 +9,12 @@ export function renderPieChart(canvas: HTMLCanvasElement, categoryData: Category
   canvas.width = LOGICAL * dpr;
   canvas.height = LOGICAL * dpr;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return { legendHtml: '', centerText: '$0.00' };
+  if (!ctx) return { legendHtml: '', centerText: formatMoney(0, currentCurrency) };
   
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, LOGICAL, LOGICAL);
 
-  if (categoryData.length === 0) return { legendHtml: '', centerText: `${getCurrencySymbol(currentCurrency)}0.00` };
+  if (categoryData.length === 0) return { legendHtml: '', centerText: formatMoney(0, currentCurrency) };
 
   const centerX = LOGICAL / 2;
   const centerY = LOGICAL / 2;
@@ -22,7 +22,6 @@ export function renderPieChart(canvas: HTMLCanvasElement, categoryData: Category
   const outerRadius = LOGICAL * 0.45;
   let currentAngle = -Math.PI / 2;
   let legendHtml = '';
-  const symbol = getCurrencySymbol(currentCurrency);
 
   categoryData.forEach((item, index) => {
     const sliceAngle = (item.percentage / 100) * 2 * Math.PI;
@@ -43,12 +42,12 @@ export function renderPieChart(canvas: HTMLCanvasElement, categoryData: Category
     currentAngle += sliceAngle;
   });
 
-  return { legendHtml, centerText: `${symbol}${total.toFixed(2)}` };
+  return { legendHtml, centerText: formatMoney(total, currentCurrency) };
 }
 
 export function renderTrendChart(canvas: HTMLCanvasElement, points: TrendPoint[], total: number, average: number, periodLabel: string, currentCurrency: string): { label: string; totalText: string; avgText: string; isEmpty: boolean } {
   const ctx = canvas.getContext('2d');
-  if (!ctx) return { label: periodLabel, totalText: '$0.00', avgText: t('trend.avg', { value: '$0.00' }), isEmpty: true };
+  if (!ctx) return { label: periodLabel, totalText: formatMoney(0, currentCurrency), avgText: t('trend.avg', { value: formatMoney(0, currentCurrency) }), isEmpty: true };
   
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
@@ -63,7 +62,7 @@ export function renderTrendChart(canvas: HTMLCanvasElement, points: TrendPoint[]
 
   if (points.length === 0 || total === 0) {
     drawTrendEmptyState(ctx, logicalWidth, logicalHeight);
-    return { label: periodLabel, totalText: `${symbol}${total.toFixed(2)}`, avgText: t('trend.avg', { value: `${symbol}${average.toFixed(2)}` }), isEmpty: true };
+    return { label: periodLabel, totalText: formatMoney(total, currentCurrency), avgText: t('trend.avg', { value: formatMoney(average, currentCurrency) }), isEmpty: true };
   }
 
   const isDark = document.documentElement.classList.contains('dark');
@@ -143,7 +142,7 @@ export function renderTrendChart(canvas: HTMLCanvasElement, points: TrendPoint[]
 
   drawTrendXAxisLabels(ctx, coordinates, logicalWidth, logicalHeight, axisLeft, axisRight, labelColor);
 
-  return { label: periodLabel, totalText: `${symbol}${total.toFixed(2)}`, avgText: t('trend.avg', { value: `${symbol}${average.toFixed(2)}` }), isEmpty: false };
+  return { label: periodLabel, totalText: formatMoney(total, currentCurrency), avgText: t('trend.avg', { value: formatMoney(average, currentCurrency) }), isEmpty: false };
 }
 
 function drawTrendXAxisLabels(ctx: CanvasRenderingContext2D, points: any[], width: number, height: number, axisLeft: number, axisRight: number, labelColor: string) {

@@ -1,11 +1,9 @@
 <script lang="ts">
   import { chartColors, categoryIcons } from '../lib/constants.js';
-  import { getCurrencySymbol } from '../lib/currency.js';
+  import { formatMoney } from '../lib/currency.js';
   import { t } from '../lib/i18n.svelte.js';
 
   let { categoryData = [], total = 0, currency = 'USD' } = $props();
-
-  let symbol = $derived(getCurrencySymbol(currency));
 
   let topCategories = $derived(
     [...categoryData]
@@ -31,7 +29,7 @@
         <div class="flex-1 min-w-0">
           <div class="flex justify-between items-center mb-1">
             <span class="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{cat.category}</span>
-            <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{symbol}{cat.amount.toFixed(2)}</span>
+            <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{formatMoney(cat.amount, currency)}</span>
           </div>
           <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
             <div class="h-full rounded-full transition-all duration-500" style="width: {percentage}%; background: {color}"></div>

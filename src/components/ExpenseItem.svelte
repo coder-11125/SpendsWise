@@ -3,7 +3,7 @@
   import { categoryIcons } from '../lib/constants.js';
   import { getCurrentCurrency } from '../lib/state.svelte.js';
   import { formatDate } from '../lib/utils.js';
-  import { convertToDisplayCurrency, getCurrencySymbol } from '../lib/currency.js';
+  import { convertToDisplayCurrency, formatMoney } from '../lib/currency.js';
   import { t } from '../lib/i18n.svelte.js';
 
   let { item, options, onedit, ondelete } = $props();
@@ -71,10 +71,10 @@
   </div>
   <div class="flex items-center gap-3">
     <div class="text-right">
-      <p class="{options.amountColorClass} font-semibold">{options.amountPrefix}{getCurrencySymbol(convertedCurrency)}{convertedAmount.toFixed(2)}</p>
+      <p class="{options.amountColorClass} font-semibold">{options.amountPrefix}{formatMoney(convertedAmount, convertedCurrency)}</p>
       <p class="text-xs text-slate-400 dark:text-slate-500">
         {#if item.currency !== getCurrentCurrency()}
-          {getCurrencySymbol(item.currency)}{item.amount.toFixed(2)} &rarr; {convertedCurrency}
+          {formatMoney(item.amount, item.currency)} &rarr; {convertedCurrency}
         {:else}
           {item.currency}
         {/if}

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getCurrentCurrency } from '../lib/state.svelte.js';
-  import { getCurrencySymbol } from '../lib/currency.js';
+  import { formatMoney } from '../lib/currency.js';
   import { loadRecurringExpenses, updateRecurring } from '../lib/api.js';
   import { t, getLocale } from '../lib/i18n.svelte.js';
   import type { Expense } from '../types.js';
@@ -116,7 +116,7 @@
         <div class="text-right">
           <p class="text-xs text-slate-500 dark:text-slate-400">{t('recurring.estMonthly')}</p>
           <p class="text-sm font-semibold text-blue-600 dark:text-blue-400">
-            {getCurrencySymbol(getCurrentCurrency())}{totalMonthly.toFixed(2)}
+            {formatMoney(totalMonthly, getCurrentCurrency())}
           </p>
         </div>
       {/if}
@@ -147,7 +147,7 @@
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <span class="text-sm font-semibold text-rose-600 dark:text-rose-400">
-                {getCurrencySymbol(getCurrentCurrency())}{item.amount.toFixed(2)}
+                {formatMoney(item.amount, getCurrentCurrency())}
               </span>
               <button onclick={() => handlePause(item)} class="text-slate-400 hover:text-amber-600 transition-colors p-1" title={t('recurring.pause')}>
                 <i class="ph ph-pause text-sm"></i>
@@ -177,7 +177,7 @@
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
                 <span class="text-sm text-slate-500 dark:text-slate-400">
-                  {getCurrencySymbol(getCurrentCurrency())}{item.amount.toFixed(2)}
+                  {formatMoney(item.amount, getCurrentCurrency())}
                 </span>
                 <button onclick={() => handleResume(item)} class="text-slate-400 hover:text-emerald-600 transition-colors p-1" title={t('recurring.resume')}>
                   <i class="ph ph-play text-sm"></i>

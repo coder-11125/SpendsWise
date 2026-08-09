@@ -2,14 +2,13 @@
   import { untrack } from 'svelte';
   import { getBudgetGoals, getExpense, getCurrentCurrency } from '../lib/state.svelte.js';
   import { getCurrentMonthExpenseByCategory } from '../lib/calculations.svelte.js';
-  import { getCurrencySymbol } from '../lib/currency.js';
+  import { formatMoney } from '../lib/currency.js';
   import { t } from '../lib/i18n.svelte.js';
 
   let budgetGoals = $derived(getBudgetGoals());
   let expense = $derived(getExpense());
   let currency = $derived(getCurrentCurrency());
   let monthlySpend = $state<Record<string, number>>({});
-  let symbol = $derived(getCurrencySymbol(currency));
 
   $effect(() => {
     untrack(() => {
@@ -41,7 +40,7 @@
           <div class="flex justify-between items-center mb-1">
             <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{category}</span>
             <span class="text-xs {isOver ? 'text-rose-600' : 'text-slate-500 dark:text-slate-400'}">
-              {symbol}{spent.toFixed(2)} / {symbol}{goal.toFixed(2)}
+              {formatMoney(spent, currency)} / {formatMoney(goal, currency)}
             </span>
           </div>
           <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">

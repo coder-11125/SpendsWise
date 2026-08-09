@@ -1,14 +1,12 @@
 <script lang="ts">
-  import { getCurrencySymbol } from '../lib/currency.js';
+  import { formatMoney } from '../lib/currency.js';
   import { t } from '../lib/i18n.svelte.js';
 
   let { summary = { income: 0, expenses: 0, balance: 0 }, currency = 'USD' } = $props();
 
-  let symbol = $derived(getCurrencySymbol(currency));
-
   function formatAmount(amount: number, preserveSign = false) {
     const sign = preserveSign && amount < 0 ? '-' : '';
-    return `${sign}${symbol}${Math.abs(amount).toFixed(2)}`;
+    return `${sign}${formatMoney(Math.abs(amount), currency)}`;
   }
 </script>
 

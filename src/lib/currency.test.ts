@@ -9,6 +9,7 @@ vi.mock("./api.js", () => ({
 import {
   getCurrencySymbol,
   formatAmountWithSymbol,
+  formatMoney,
   compactCurrencyValue,
   convertToDisplayCurrency,
   convertToDisplayCurrencySync,
@@ -16,6 +17,7 @@ import {
 } from "./currency.js";
 import { convertCurrency, fetchCurrencyRates } from "./api.js";
 import { setCurrencyRates, setLastRateFetch } from "./state.svelte.js";
+import { setLocale } from "./i18n.svelte.js";
 
 const mockConvertCurrency = vi.mocked(convertCurrency);
 const mockFetchCurrencyRates = vi.mocked(fetchCurrencyRates);
@@ -111,5 +113,19 @@ describe("convertToDisplayCurrency", () => {
     const out = await convertToDisplayCurrency(5, "USD", "USD");
     expect(mockConvertCurrency).toHaveBeenCalledWith(5, "USD", "USD");
     expect(out).toEqual({ amount: 15, currency: "USD" });
+  });
+});
+
+describe("formatMoney locale awareness", () => {
+  it("groups with the active locale and switches separators with the language", () => {
+    setLocale("en");
+    expect(formatMoney(1234.5, "USD")).toBe("$1,234.50");
+    setLocale("es");
+    const es = formatMoney(1234.5, "USD");
+    // Node's bundled ICU may omit the es thousands separator, but the decimal
+    // separator must become a comma and the output must differ from English.
+    expect(es.endsWith(",50")).toBe(true);
+    expect(es).not.toBe("$1,234.50");
+    setLocale("en");
   });
 });
