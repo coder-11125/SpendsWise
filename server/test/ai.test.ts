@@ -320,4 +320,34 @@ describe("AI chat agentic tools", () => {
     expect(systemPrompt).toMatch(/never show a transaction id to the user/i);
     expect(systemPrompt).toMatch(/describe the transaction by its date, category, amount, and note/i);
   });
+
+  it("instructs the model to reply in Spanish when lang is es", async () => {
+    const { token } = await createUser();
+    createMock.mockResolvedValueOnce(finalMessage("Hola, has gastado $40."));
+
+    const res = await request(app)
+      .post("/api/ai/chat")
+      .set(as(token))
+      .send({ message: "¿cuánto gasté?", lang: "es" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.reply).toBe("Hola, has gastado $40.");
+
+    const systemPrompt = createMock.mock.calls[0][0].messages[0].content as string;
+    expect(systemPrompt).toMatch(/reply in spanish/i);
+  });
+
+  it("keeps the English default when lang is omitted", async () => {
+    const { token } = await createUser();
+    createMock.mockResolvedValueOnce(finalMessage("You spent $40."));
+
+    const res = await request(app)
+      .post("/api/ai/chat")
+      .set(as(token))
+      .send({ message: "how much did I spend?" });
+
+    expect(res.status).toBe(200);
+    const systemPrompt = createMock.mock.calls[0][0].messages[0].content as string;
+    expect(systemPrompt).not.toMatch(/reply in spanish/i);
+  });
 });
