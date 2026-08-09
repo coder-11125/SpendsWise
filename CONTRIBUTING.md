@@ -90,7 +90,7 @@ SpendsWise/
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/coder11125/SpendsWise.git
+git clone https://github.com/coder-11125/SpendsWise.git
 cd SpendsWise
 
 # Frontend
