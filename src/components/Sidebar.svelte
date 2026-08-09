@@ -1,27 +1,28 @@
 <script lang="ts">
   import { getEmail, getIsLoggedIn, confirmDialog } from '../lib/state.svelte.js';
   import { logout } from '../lib/api.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let { activeFilter = 'all', onnavigate, collapsed = false, oncollapsetoggle } = $props();
 
   let email = $derived(getEmail());
   let isLoggedIn = $derived(getIsLoggedIn());
 
-  const navItems = [
-    { filter: 'dashboard', icon: 'ph-chart-pie-slice', label: 'Dashboard' },
-    { filter: 'income', icon: 'ph-trend-up', label: 'Income' },
-    { filter: 'expense', icon: 'ph-trend-down', label: 'Expense' },
-    { filter: 'spaces', icon: 'ph-users-three', label: 'Spaces' },
-    { filter: 'summaries', icon: 'ph-newspaper', label: 'Summaries' },
-    { filter: 'ai', icon: 'ph-chat-circle-dots', label: 'AI Assistant' },
-  ];
+  let navItems = $derived([
+    { filter: 'dashboard', icon: 'ph-chart-pie-slice', label: t('nav.dashboard') },
+    { filter: 'income', icon: 'ph-trend-up', label: t('nav.income') },
+    { filter: 'expense', icon: 'ph-trend-down', label: t('nav.expense') },
+    { filter: 'spaces', icon: 'ph-users-three', label: t('nav.spaces') },
+    { filter: 'summaries', icon: 'ph-newspaper', label: t('nav.summaries') },
+    { filter: 'ai', icon: 'ph-chat-circle-dots', label: t('nav.ai') },
+  ]);
 
   function handleNav(filter: string) {
     onnavigate?.(filter);
   }
 
   async function handleLogout() {
-    if (!await confirmDialog('Are you sure you want to log out?')) return;
+    if (!await confirmDialog(t('account.logoutConfirm'))) return;
     await logout();
   }
 </script>
@@ -32,7 +33,7 @@
       <button
         onclick={() => collapsed && oncollapsetoggle?.()}
         class="relative w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 {collapsed ? 'pointer-events-none lg:pointer-events-auto lg:cursor-pointer lg:hover:bg-blue-500 transition-colors' : 'cursor-default'}"
-        title={collapsed ? 'Expand sidebar' : ''}
+        title={collapsed ? t('nav.expandSidebar') : ''}
       >
         <i class="ph ph-wallet text-white text-lg"></i>
         {#if collapsed}
@@ -43,14 +44,14 @@
       </button>
       <div class="min-w-0 {collapsed ? 'lg:hidden' : ''}">
         <h1 class="font-bold text-lg leading-tight truncate">SpendsWise</h1>
-        <p class="text-xs text-slate-400 truncate">Global Budget Tracker</p>
+        <p class="text-xs text-slate-400 truncate">{t('nav.tagline')}</p>
       </div>
     </div>
     {#if !collapsed}
       <button
         onclick={() => oncollapsetoggle?.()}
         class="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer flex-shrink-0"
-        title="Collapse sidebar"
+        title={t('nav.collapseSidebar')}
       >
         <i class="ph ph-caret-line-left text-sm"></i>
       </button>
@@ -87,11 +88,11 @@
       </button>
       <button
         onclick={handleLogout}
-        title="Logout"
+        title={t('nav.logout')}
         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer {collapsed ? 'lg:justify-center' : ''}"
       >
         <i class="ph ph-sign-out text-lg flex-shrink-0"></i>
-        <span class="{collapsed ? 'lg:hidden' : ''}">Logout</span>
+        <span class="{collapsed ? 'lg:hidden' : ''}">{t('nav.logout')}</span>
       </button>
     {/if}
   </div>

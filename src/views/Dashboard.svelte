@@ -5,6 +5,7 @@
   import { calculateExpenseTrendData } from '../lib/utils.js';
   import { saveTransaction, deleteExpenseOnServer } from '../lib/api.js';
   import type { Expense, Summary, CategoryData, TrendPoint } from '../types.js';
+  import { t } from '../lib/i18n.svelte.js';
   import SummaryCards from '../components/SummaryCards.svelte';
   import BudgetOverview from '../components/BudgetOverview.svelte';
   import ExpenseForm from '../components/ExpenseForm.svelte';
@@ -70,12 +71,12 @@
   }
 
   async function handleDelete(id: string) {
-    if (await confirmDialog('Delete this item?')) {
+    if (await confirmDialog(t('dashboard.deleteItem'))) {
       const deleted = await deleteExpenseOnServer(id);
       if (deleted) {
         removeExpenseItem(id);
       } else {
-        alert('Unable to delete this item. Please try again.');
+        alert(t('dashboard.unableDelete'));
       }
     }
   }
@@ -101,9 +102,9 @@
   {/if}
 
   <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Recent Expenses</h2>
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">{t('dashboard.recentExpenses')}</h2>
     {#if recentExpenses.length === 0}
-      <p class="text-slate-500 dark:text-slate-400 text-center py-8">No expenses yet.</p>
+      <p class="text-slate-500 dark:text-slate-400 text-center py-8">{t('dashboard.noExpensesYet')}</p>
     {:else}
       <ul class="space-y-2">
         {#each recentExpenses as item (item.id)}

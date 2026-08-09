@@ -377,7 +377,7 @@ router.post(
   "/chat",
   asyncHandler(async (req, res) => {
     const start = Date.now();
-    const { message, history = [], spaceId } = req.body ?? {};
+    const { message, history = [], spaceId, lang } = req.body ?? {};
     if (typeof message !== "string" || !message.trim()) {
       return res.status(400).json({ error: "message is required" });
     }
@@ -418,6 +418,12 @@ router.post(
       });
 
       const today = new Date().toISOString().substring(0, 10);
+      const languageLine =
+        lang === "es"
+          ? "\nReply in Spanish (es). Use natural, conversational Spanish."
+          : lang && lang !== "en"
+            ? `\nReply in the user's language (locale: ${lang}).`
+            : "\nReply in English.";
       const systemPrompt = `You are a personal finance assistant for SpendsWise.
 Today: ${today}
 Context: ${contextName}
@@ -432,7 +438,7 @@ transactions on the user's behalf using the provided tools when they ask you to 
 Never invent a transaction id — only use ids that appear in the history above.
 Transaction ids are internal identifiers only: never show a transaction id to the user. When you
 confirm an edit or deletion, describe the transaction by its date, category, amount, and note instead
-(e.g. "Updated the $40 Groceries charge from yesterday to $35.50").`;
+(e.g. "Updated the $40 Groceries charge from yesterday to $35.50").${languageLine}`;
 
       const safeHistory = history
         .slice(-10)

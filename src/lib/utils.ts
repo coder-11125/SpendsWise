@@ -1,8 +1,9 @@
+import { t, getLocale } from './i18n.svelte.js';
 import type { Expense, TrendData, TrendPoint } from '../types.js';
 
 export function formatDate(dateString: string): string {
   const [year, month, day] = dateString.split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return new Date(year, month - 1, day).toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' });
 }
 
 export function parseLocalExpenseDate(dateString: string): Date | null {
@@ -36,10 +37,10 @@ export function formatMonthKey(date: Date): string {
 
 export function getTrendPeriodLabel(range: string): string {
   switch (range) {
-    case 'all': return 'All Time';
-    case 'week': return 'Last 7 Days';
-    case 'day': return 'Today';
-    case 'month': default: return 'This Month';
+    case 'all': return t('trend.allTime');
+    case 'week': return t('trend.last7Days');
+    case 'day': return t('trend.today');
+    case 'month': default: return t('trend.thisMonth');
   }
 }
 
@@ -68,7 +69,7 @@ export async function calculateExpenseTrendData(expenseItems: Expense[], range: 
 
     while (cursor <= end) {
       const key = formatMonthKey(cursor);
-      buckets.push({ key, label: cursor.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }) });
+      buckets.push({ key, label: cursor.toLocaleDateString(getLocale(), { month: 'short', year: '2-digit' }) });
       bucketTotals[key] = 0;
       cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
     }
@@ -86,7 +87,7 @@ export async function calculateExpenseTrendData(expenseItems: Expense[], range: 
 
     for (let cursor = new Date(start); cursor <= end; cursor = addDays(cursor, 1)) {
       const key = formatDateKey(cursor);
-      buckets.push({ key, label: range === 'day' ? 'Today' : cursor.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) });
+      buckets.push({ key, label: range === 'day' ? t('trend.today') : cursor.toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' }) });
       bucketTotals[key] = 0;
     }
 

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { login, register, showApp } from '../lib/api.js';
   import { navigate } from '../lib/state.svelte.js';
+  import { t } from '../lib/i18n.svelte.js';
+  import LanguageSelect from '../components/LanguageSelect.svelte';
 
   let tab = $state('login');
   let email = $state('');
@@ -12,7 +14,7 @@
     e.preventDefault();
     error = '';
     if (!email || !password) {
-      error = 'Please fill in all fields.';
+      error = t('common.fillAllFields');
       return;
     }
     loading = true;
@@ -21,7 +23,7 @@
       await showApp(data.user.email, data.user.id);
       navigate('/dashboard');
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Unknown error';
+      error = err instanceof Error ? err.message : t('common.unknownError');
     } finally {
       loading = false;
     }
@@ -31,35 +33,40 @@
 <div class="min-h-screen bg-white flex items-center justify-center p-4">
   <div class="w-full max-w-md">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-xl font-bold text-slate-800">SpendsWise</h1>
-      <i class="ph ph-wallet text-2xl text-blue-600"></i>
+      <div class="flex items-center gap-2">
+        <h1 class="text-xl font-bold text-slate-800">SpendsWise</h1>
+        <i class="ph ph-wallet text-2xl text-blue-600"></i>
+      </div>
+      <div class="w-36">
+        <LanguageSelect />
+      </div>
     </div>
 
     <div class="flex border border-slate-200 rounded-lg p-1 mb-6">
       <button
         class="flex-1 py-2 text-sm font-medium rounded-md transition-colors {tab === 'login' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-800'}"
         onclick={() => { tab = 'login'; error = ''; }}
-      >Sign In</button>
+      >{t('login.signIn')}</button>
       <button
         class="flex-1 py-2 text-sm font-medium rounded-md transition-colors {tab === 'register' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-800'}"
         onclick={() => { tab = 'register'; error = ''; }}
-      >Register</button>
+      >{t('login.register')}</button>
     </div>
 
     <form onsubmit={handleSubmit} class="space-y-4">
       <div>
-        <label for="authEmail" class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+        <label for="authEmail" class="block text-sm font-medium text-slate-700 mb-1">{t('login.email')}</label>
         <input
           id="authEmail"
           type="email"
           bind:value={email}
-          placeholder="your@email.com"
+          placeholder={t('login.emailPlaceholder')}
           class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           autocomplete="email"
         />
       </div>
       <div>
-        <label for="authPassword" class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+        <label for="authPassword" class="block text-sm font-medium text-slate-700 mb-1">{t('login.password')}</label>
         <input
           id="authPassword"
           type="password"
@@ -81,9 +88,9 @@
       >
         {#if loading}
           <i class="ph ph-spinner animate-spin"></i>
-          {tab === 'login' ? 'Signing in...' : 'Creating account...'}
+          {tab === 'login' ? t('login.signingIn') : t('login.creatingAccount')}
         {:else}
-          {tab === 'login' ? 'Sign In' : 'Create Account'}
+          {tab === 'login' ? t('login.signIn') : t('login.createAccount')}
         {/if}
       </button>
     </form>
@@ -94,7 +101,7 @@
           <div class="w-full border-t border-slate-200"></div>
         </div>
         <div class="relative flex justify-center text-sm">
-          <span class="bg-white px-2 text-slate-500">or</span>
+          <span class="bg-white px-2 text-slate-500">{t('login.or')}</span>
         </div>
       </div>
       <a

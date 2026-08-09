@@ -2,13 +2,19 @@ import { currencySymbols } from './constants.js';
 import { convertCurrency, fetchCurrencyRates } from './api.js';
 import { RATE_CACHE_DURATION } from './constants.js';
 import { getCurrencyRates, setCurrencyRates, getLastRateFetch, setLastRateFetch } from './state.svelte.js';
+import { formatNumber } from './i18n.svelte.js';
 
 export function getCurrencySymbol(currency: string): string {
   return currencySymbols[currency] || currency + ' ';
 }
 
+/** Locale-aware money formatting: symbol + grouped/separated number. */
+export function formatMoney(amount: number, currency: string): string {
+  return `${getCurrencySymbol(currency)}${formatNumber(amount)}`;
+}
+
 export function formatAmountWithSymbol(amount: number, currency: string): string {
-  return `${getCurrencySymbol(currency)}${amount.toFixed(2)}`;
+  return formatMoney(amount, currency);
 }
 
 export async function convertToDisplayCurrency(amount: number, originalCurrency: string, displayCurrency: string): Promise<{ amount: number; currency: string }> {

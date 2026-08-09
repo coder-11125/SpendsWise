@@ -1,5 +1,6 @@
 <script lang="ts">
   import { navigate } from '../lib/state.svelte.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let {
     activeFilter = 'dashboard',
@@ -11,17 +12,17 @@
     onai?: () => void;
   } = $props();
 
-  const navItems = [
-    { filter: 'dashboard', icon: 'ph-chart-pie-slice', label: 'Dashboard' },
-    { filter: 'expense', icon: 'ph-trend-down', label: 'Expense' },
-  ];
+  let navItems = $derived([
+    { filter: 'dashboard', icon: 'ph-chart-pie-slice', label: t('nav.dashboard') },
+    { filter: 'expense', icon: 'ph-trend-down', label: t('nav.expense') },
+  ]);
 
-  const rightItems = [
-    { filter: 'income', icon: 'ph-trend-up', label: 'Income' },
-    { filter: 'account', icon: 'ph-user', label: 'Account' },
-  ];
+  let rightItems = $derived([
+    { filter: 'income', icon: 'ph-trend-up', label: t('nav.income') },
+    { filter: 'account', icon: 'ph-user', label: t('nav.account') },
+  ]);
 
-  const aiButton = { icon: 'ph-brain', label: 'AI' };
+  let aiButton = $derived({ icon: 'ph-brain', label: t('nav.ai') });
 
   function handleNav(filter: string) {
     navigate('/' + filter);
@@ -56,7 +57,7 @@
     <button
       onclick={() => onquickadd?.()}
       class="relative -mt-3 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer flex-shrink-0"
-      aria-label="Quick add"
+      aria-label={t('nav.quickAdd')}
     >
       <i class="ph ph-plus text-2xl"></i>
     </button>

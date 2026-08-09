@@ -14,6 +14,7 @@ import {
   setRatesAreLive,
   navigate,
 } from './state.svelte.js';
+import { getLocale } from './i18n.svelte.js';
 import type { Expense, Profile, WeeklySummary, Space } from '../types.js';
 
 // Prevent an older polling/Pusher response from restoring transactions after
@@ -548,7 +549,7 @@ export async function syncTimezone(): Promise<void> {
 export async function sendAiMessage(message: string, history: any[], spaceId?: string | null): Promise<any> {
   const res = await apiFetch('/ai/chat', {
     method: 'POST',
-    body: JSON.stringify({ message, history, spaceId: spaceId ?? undefined }),
+    body: JSON.stringify({ message, history, spaceId: spaceId ?? undefined, lang: getLocale() }),
   });
   return handleJsonResponse(res, 'AI request failed');
 }
