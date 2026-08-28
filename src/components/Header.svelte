@@ -42,12 +42,23 @@
       responding = '';
     }
   }
+
+  function openQuickAdd() {
+    window.dispatchEvent(new CustomEvent('open-quick-add'));
+  }
 </script>
 
 <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 lg:px-6 h-16 flex items-center justify-center lg:justify-end sticky top-0 z-30">
 
   <div class="flex items-center gap-2">
     {#if isLoggedIn && view !== 'ai'}
+      <button
+        onclick={openQuickAdd}
+        class="hidden lg:flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+      >
+        <i class="ph ph-plus-circle text-lg"></i>
+        <span>{t('header.addEntry')}</span>
+      </button>
       <div class="relative">
         <button
           onclick={() => switcherOpen = !switcherOpen}

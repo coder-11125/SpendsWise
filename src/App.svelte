@@ -75,8 +75,8 @@
     }
   });
 
-  // Lets any view (not just the mobile bottom nav) open the Quick Add modal,
-  // e.g. the "Add Transaction" button on the Expense view.
+  // Lets any part of the app (not just the mobile bottom nav) open the Quick
+  // Add modal, e.g. the Header's "Add Entry" button on desktop.
   $effect(() => {
     if (typeof window !== 'undefined') {
       const listener = () => { showMobileQuickAdd = true; };

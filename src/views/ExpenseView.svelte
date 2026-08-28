@@ -262,10 +262,6 @@
     }
   }
 
-  function openQuickAdd() {
-    window.dispatchEvent(new CustomEvent('open-quick-add'));
-  }
-
   function handleEdit(item: Expense) {
     const ev = new CustomEvent<Expense>('edit-expense', { detail: item });
     window.dispatchEvent(ev);
@@ -312,12 +308,6 @@
         </div>
       {/if}
     </div>
-
-    <button onclick={openQuickAdd}
-      class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors cursor-pointer">
-      <i class="ph ph-plus-circle"></i>
-      {t('form.addTransaction')}
-    </button>
 
     {#if mode === 'list'}
       <div class="relative inline-block">

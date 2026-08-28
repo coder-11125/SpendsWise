@@ -35,6 +35,7 @@ export const es: Dict = {
   "nav.quickAdd": "Agregado rápido",
 
   // ---- Header ----
+  "header.addEntry": "Agregar entrada",
   "header.personal": "Personal",
   "header.manageHubs": "Administrar Espacios...",
   "header.notifications": "Notificaciones",
@@ -211,7 +212,6 @@ export const es: Dict = {
   "summaries.vsPreviousWeek": "{pct}% frente a la semana anterior",
 
   // ---- Forms ----
-  "form.addTransaction": "Agregar transacción",
   "form.addIncome": "Agregar ingreso",
   "form.space": "Espacio",
   "form.amount": "Monto",
