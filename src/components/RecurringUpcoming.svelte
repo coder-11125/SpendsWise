@@ -6,8 +6,13 @@
   import { t, getLocale } from '../lib/i18n.svelte.js';
   import type { Expense } from '../types.js';
 
+  let { type = 'expense' }: { type?: 'income' | 'expense' } = $props();
+
   let recurring = $state<Expense[]>([]);
   let loading = $state(true);
+
+  let amountColorClass = $derived(type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400');
+  let amountPrefix = $derived(type === 'income' ? '+' : '');
 
   const frequencyLabels = $derived<Record<string, string>>({
     daily: t('freq.daily'),
@@ -27,7 +32,7 @@
 
   async function refresh() {
     loading = true;
-    recurring = await loadRecurringExpenses();
+    recurring = (await loadRecurringExpenses()).filter(r => r.type === type);
     loading = false;
   }
 
@@ -110,7 +115,7 @@
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
         <i class="ph ph-repeat text-blue-600 text-lg"></i>
-        <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('recurring.title')}</h2>
+        <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t(type === 'income' ? 'recurring.titleIncome' : 'recurring.titleExpense')}</h2>
       </div>
       {#if activeRecurring.length > 0}
         <div class="text-right">
@@ -146,8 +151,8 @@
               </div>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
-              <span class="text-sm font-semibold text-rose-600 dark:text-rose-400">
-                {formatMoney(item.amount, getCurrentCurrency())}
+              <span class="text-sm font-semibold {amountColorClass}">
+                {amountPrefix}{formatMoney(item.amount, getCurrentCurrency())}
               </span>
               <button onclick={() => handlePause(item)} class="text-slate-400 hover:text-amber-600 transition-colors p-1" title={t('recurring.pause')}>
                 <i class="ph ph-pause text-sm"></i>

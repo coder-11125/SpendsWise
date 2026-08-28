@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { getExpense, getCurrentCurrency, removeExpenseItem, getCurrentSpaceId, confirmDialog } from '../lib/state.svelte.js';
+  import { getExpense, getCurrentCurrency, addExpenseItem, removeExpenseItem, getCurrentSpaceId, confirmDialog } from '../lib/state.svelte.js';
   import { calculateIncomeSummary, calculateMemberBreakdown } from '../lib/calculations.svelte.js';
   import { formatMoney } from '../lib/currency.js';
   import { deleteExpenseOnServer } from '../lib/api.js';
@@ -8,6 +8,8 @@
   import type { Expense, CategoryData } from '../types.js';
   import ExpenseItem from '../components/ExpenseItem.svelte';
   import MemberBreakdown from '../components/MemberBreakdown.svelte';
+  import RecurringUpcoming from '../components/RecurringUpcoming.svelte';
+  import IncomeForm from '../components/IncomeForm.svelte';
 
   let summary = $state<{ total: number; count: number; average: number }>({ total: 0, count: 0, average: 0 });
   let incomeItems = $state<Expense[]>([]);
@@ -87,6 +89,10 @@
     }
   }
 
+  async function handleAdd(saved: Expense | null) {
+    if (saved) addExpenseItem(saved);
+  }
+
   function handleEdit(item: Expense) {
     const ev = new CustomEvent<Expense>('edit-income', { detail: item });
     window.dispatchEvent(ev);
@@ -119,6 +125,10 @@
       <p class="text-2xl font-bold text-blue-600">{formatMoney(summary.average, getCurrentCurrency())}</p>
     </div>
   </div>
+
+  <RecurringUpcoming type="income" />
+
+  <IncomeForm onadd={handleAdd} />
 
   {#if inSpace}
     <MemberBreakdown {memberData} total={memberTotal} currency={getCurrentCurrency()} />

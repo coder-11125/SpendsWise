@@ -200,7 +200,8 @@ export const en: Dict = {
   "summaries.vsPreviousWeek": "{pct}% vs previous week",
 
   // ---- Forms ----
-  "form.addTransaction": "Add Transaction",
+  "form.addTransaction": "Add Expense",
+  "form.addIncome": "Add Income",
   "form.space": "Space",
   "form.amount": "Amount",
   "form.categoryType": "Type",
@@ -238,7 +239,8 @@ export const en: Dict = {
   "form.import": "Import",
 
   // ---- Recurring ----
-  "recurring.title": "Recurring Transactions",
+  "recurring.titleExpense": "Recurring Expenses",
+  "recurring.titleIncome": "Recurring Income",
   "recurring.estMonthly": "Est. Monthly",
   "recurring.next": "Next: {date}",
   "recurring.overdue": "Overdue",
@@ -254,11 +256,6 @@ export const en: Dict = {
   "freq.biweekly": "Bi-weekly",
   "freq.monthly": "Monthly",
   "freq.yearly": "Yearly",
-
-  // ---- Summary cards ----
-  "cards.totalBalance": "Total Balance",
-  "cards.totalIncome": "Total Income",
-  "cards.totalExpense": "Total Expense",
 
   // ---- Budget ----
   "budget.overview": "Budget Overview",

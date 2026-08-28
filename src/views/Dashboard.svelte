@@ -1,12 +1,12 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { getExpense, getCurrentCurrency, addExpenseItem, removeExpenseItem, getDashboardTrendRange, setDashboardTrendRange, getCurrentSpaceId, confirmDialog } from '../lib/state.svelte.js';
-  import { calculateSummary, calculateExpenseByCategory, calculateMemberBreakdown } from '../lib/calculations.svelte.js';
+  import { calculateExpenseSummary, calculateExpenseByCategory, calculateMemberBreakdown } from '../lib/calculations.svelte.js';
   import { calculateExpenseTrendData } from '../lib/utils.js';
+  import { formatMoney } from '../lib/currency.js';
   import { saveTransaction, deleteExpenseOnServer } from '../lib/api.js';
-  import type { Expense, Summary, CategoryData, TrendPoint } from '../types.js';
+  import type { Expense, ExpenseSummary, CategoryData, TrendPoint } from '../types.js';
   import { t } from '../lib/i18n.svelte.js';
-  import SummaryCards from '../components/SummaryCards.svelte';
   import BudgetOverview from '../components/BudgetOverview.svelte';
   import ExpenseForm from '../components/ExpenseForm.svelte';
   import PieChart from '../components/PieChart.svelte';
@@ -15,7 +15,7 @@
   import RecurringUpcoming from '../components/RecurringUpcoming.svelte';
   import MemberBreakdown from '../components/MemberBreakdown.svelte';
 
-  let summary = $state<Summary>({ income: 0, expenses: 0, balance: 0 });
+  let summary = $state<ExpenseSummary>({ total: 0, count: 0, average: 0 });
   let categoryData = $state<CategoryData[]>([]);
   let categoryTotal = $state<number>(0);
   let trendPoints = $state<TrendPoint[]>([]);
@@ -31,11 +31,12 @@
   async function refresh() {
     const expense = getExpense();
     const currency = getCurrentCurrency();
+    const expenseOnly = expense.filter(i => i.type === 'expense');
     const [s, c, t, m] = await Promise.all([
-      calculateSummary(expense, currency),
+      calculateExpenseSummary(expense, currency),
       calculateExpenseByCategory(expense, currency),
       calculateExpenseTrendData(expense, trendRange, currency),
-      calculateMemberBreakdown(expense, currency)
+      calculateMemberBreakdown(expenseOnly, currency)
     ]);
     if (cancelled) return;
     summary = s;
@@ -45,7 +46,7 @@
     trendTotal = t.total;
     trendAverage = t.average;
     trendPeriodLabel = t.periodLabel;
-    recentExpenses = expense.slice(0, 10);
+    recentExpenses = expenseOnly.slice(0, 10);
     memberData = m.data;
     memberTotal = m.total;
   }
@@ -83,12 +84,24 @@
 </script>
 
 <div class="space-y-6">
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <SummaryCards {summary} currency={getCurrentCurrency()} />
-    <BudgetOverview />
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+      <p class="text-sm text-slate-500 dark:text-slate-400">{t('expense.total')}</p>
+      <p class="text-2xl font-bold text-rose-600">{formatMoney(summary.total, getCurrentCurrency())}</p>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+      <p class="text-sm text-slate-500 dark:text-slate-400">{t('expense.entries')}</p>
+      <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{summary.count}</p>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+      <p class="text-sm text-slate-500 dark:text-slate-400">{t('expense.average')}</p>
+      <p class="text-2xl font-bold text-orange-600">{formatMoney(summary.average, getCurrentCurrency())}</p>
+    </div>
   </div>
 
-  <RecurringUpcoming />
+  <BudgetOverview />
+
+  <RecurringUpcoming type="expense" />
 
   <ExpenseForm onadd={handleAdd} />
 
@@ -110,12 +123,12 @@
         {#each recentExpenses as item (item.id)}
           <ExpenseItem {item}
             options={{
-              showTypeBadge: true,
-              useTypeIcon: false,
-              iconBgClass: item.type === 'income' ? 'bg-emerald-100' : 'bg-rose-100',
-              iconColorClass: item.type === 'income' ? 'text-emerald-600' : 'text-rose-600',
-              amountColorClass: item.type === 'income' ? 'text-emerald-600' : 'text-rose-600',
-              amountPrefix: item.type === 'income' ? '+' : ''
+              showTypeBadge: false,
+              useTypeIcon: true,
+              iconBgClass: 'bg-rose-100',
+              iconColorClass: 'text-rose-600',
+              amountColorClass: 'text-rose-600',
+              amountPrefix: ''
             }}
             onedit={() => {}}
             ondelete={handleDelete} />

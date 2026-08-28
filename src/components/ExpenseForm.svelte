@@ -11,7 +11,7 @@
 
   let { onadd } = $props<{ onadd?: (item: Expense) => void }>();
 
-  let type = $state<'income' | 'expense'>('expense');
+  const type = 'expense' as const;
   let amount = $state<string>('');
   let category = $state<string>('Food & Dining');
   let date = $state<string>(new Date().toISOString().split('T')[0]);
@@ -241,17 +241,6 @@
     <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('form.addTransaction')}</h2>
   </div>
 
-  <div class="flex gap-4 mb-4">
-    <label class="flex items-center gap-2 cursor-pointer">
-      <input type="radio" bind:group={type} value="expense" class="text-rose-500 focus:ring-rose-400" />
-      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{t('type.expense')}</span>
-    </label>
-    <label class="flex items-center gap-2 cursor-pointer">
-      <input type="radio" bind:group={type} value="income" class="text-emerald-500 focus:ring-emerald-400" />
-      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{t('type.income')}</span>
-    </label>
-  </div>
-
   {#if spaces.length > 0}
     <div class="mb-4">
       <label for="expense-space" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('form.space')}</label>
@@ -345,7 +334,7 @@
       {#if submitting}
         <i class="ph ph-circle-notch animate-spin"></i>
       {/if}
-      {t('form.add', { type: type === 'expense' ? t('type.expense') : t('type.income') })}
+      {t('form.add', { type: t('type.expense') })}
     </button>
   </div>
 

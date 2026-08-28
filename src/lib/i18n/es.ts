@@ -200,7 +200,8 @@ export const es: Dict = {
   "summaries.vsPreviousWeek": "{pct}% frente a la semana anterior",
 
   // ---- Forms ----
-  "form.addTransaction": "Agregar transacción",
+  "form.addTransaction": "Agregar gasto",
+  "form.addIncome": "Agregar ingreso",
   "form.space": "Espacio",
   "form.amount": "Monto",
   "form.categoryType": "Tipo",
@@ -238,7 +239,8 @@ export const es: Dict = {
   "form.import": "Importar",
 
   // ---- Recurring ----
-  "recurring.title": "Transacciones recurrentes",
+  "recurring.titleExpense": "Gastos recurrentes",
+  "recurring.titleIncome": "Ingresos recurrentes",
   "recurring.estMonthly": "Est. mensual",
   "recurring.next": "Próximo: {date}",
   "recurring.overdue": "Vencido",
@@ -254,11 +256,6 @@ export const es: Dict = {
   "freq.biweekly": "Quincenal",
   "freq.monthly": "Mensual",
   "freq.yearly": "Anual",
-
-  // ---- Summary cards ----
-  "cards.totalBalance": "Balance total",
-  "cards.totalIncome": "Ingresos totales",
-  "cards.totalExpense": "Gasto total",
 
   // ---- Budget ----
   "budget.overview": "Resumen de presupuesto",
