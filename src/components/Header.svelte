@@ -2,7 +2,7 @@
   import { getCurrentCurrency, getIsLoggedIn, getRatesAreLive, getSpaces, getCurrentSpaceId, getPendingInvites, navigate } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
   import { fetchPendingInvites, respondToInvite, switchSpace } from '../lib/api.js';
-  import { t, locales, getLocale, setLocale } from '../lib/i18n.svelte.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let { onopencurrency, view = '' } = $props();
 
@@ -16,7 +16,6 @@
   let currentSpace = $derived(spaces.find(s => s.id === currentSpaceId));
   let switcherOpen = $state(false);
   let notificationsOpen = $state(false);
-  let languageOpen = $state(false);
   let responding = $state('');
   let notificationError = $state('');
   let pendingInvites = $derived(getPendingInvites());
@@ -145,34 +144,6 @@
           <i class="ph ph-warning-circle text-amber-500 text-base" aria-label={t('header.exchangeRatesUnavailable')}></i>
         {/if}
       </button>
-      <div class="relative">
-        <button
-          onclick={() => languageOpen = !languageOpen}
-          aria-label={t('common.language')}
-          title={t('common.language')}
-          class="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
-        >
-          <i class="ph ph-translate text-lg"></i>
-          <span class="hidden lg:inline">{locales.find(l => l.code === getLocale())?.label}</span>
-        </button>
-
-        {#if languageOpen}
-          <div role="presentation" class="fixed inset-0 z-40" onclick={() => languageOpen = false}></div>
-          <div class="absolute right-0 mt-2 w-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
-            {#each locales as l (l.code)}
-              <button
-                onclick={() => { setLocale(l.code); languageOpen = false; }}
-                class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors {getLocale() === l.code ? 'text-blue-600 font-medium' : 'text-slate-700 dark:text-slate-200'}"
-              >
-                <span class="flex-1">{l.label}</span>
-                {#if getLocale() === l.code}
-                  <i class="ph ph-check text-blue-600"></i>
-                {/if}
-              </button>
-            {/each}
-          </div>
-        {/if}
-      </div>
     {/if}
   </div>
 </header>
