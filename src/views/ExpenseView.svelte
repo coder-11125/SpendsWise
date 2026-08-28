@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
-  import { getExpense, getCurrentCurrency, removeExpenseItem, getExpenseTrendRange, setExpenseTrendRange, getCurrentSpaceId, confirmDialog } from '../lib/state.svelte.js';
+  import { onMount, untrack } from 'svelte';
+  import { getExpense, getCurrentCurrency, removeExpenseItem, getExpenseTrendRange, setExpenseTrendRange, getCurrentSpaceId, getCurrentSpace, getAllCategories, confirmDialog } from '../lib/state.svelte.js';
   import { calculateExpenseSummary, calculateExpenseByCategory, calculateMemberBreakdown } from '../lib/calculations.svelte.js';
   import { calculateExpenseTrendData } from '../lib/utils.js';
   import { formatMoney } from '../lib/currency.js';
   import { deleteExpenseOnServer } from '../lib/api.js';
   import { t } from '../lib/i18n.svelte.js';
+  import { getFlatpickrLocale } from '../lib/flatpickrLocale.js';
   import type { Expense, CategoryData, TrendData, TrendPoint } from '../types.js';
   import PieChart from '../components/PieChart.svelte';
   import TopCategories from '../components/TopCategories.svelte';
@@ -29,6 +30,95 @@
   let memberData = $state<CategoryData[]>([]);
   let memberTotal = $state<number>(0);
   let inSpace = $derived(!!getCurrentSpaceId());
+
+  // Filters
+  let showFilters = $state<boolean>(false);
+  let filterDateFrom = $state<string>('');
+  let filterDateTo = $state<string>('');
+  let filterAmountMin = $state<string>('');
+  let filterAmountMax = $state<string>('');
+  let filterCategories = $state<string[]>([]);
+  let filterContributors = $state<string[]>([]);
+  let filterRecurringOnly = $state<boolean>(false);
+  let categoryFilterOpen = $state<boolean>(false);
+  let contributorFilterOpen = $state<boolean>(false);
+  let dateFromInputEl = $state<HTMLInputElement | null>(null);
+  let dateToInputEl = $state<HTMLInputElement | null>(null);
+  let fpFrom = $state<any>(null);
+  let fpTo = $state<any>(null);
+
+  let availableCategories = $derived(getAllCategories('expense'));
+  let availableContributors = $derived.by(() => {
+    const space = getCurrentSpace();
+    if (space) return space.members.map(m => m.nickname).filter(Boolean).sort();
+    const names = new Set<string>();
+    for (const i of expenseItems) if (i.familyMember) names.add(i.familyMember);
+    return [...names].sort();
+  });
+  let activeFilterCount = $derived(
+    (filterDateFrom ? 1 : 0) +
+    (filterDateTo ? 1 : 0) +
+    (filterAmountMin ? 1 : 0) +
+    (filterAmountMax ? 1 : 0) +
+    (filterCategories.length > 0 ? 1 : 0) +
+    (filterContributors.length > 0 ? 1 : 0) +
+    (filterRecurringOnly ? 1 : 0)
+  );
+
+  onMount(() => {
+    if (dateFromInputEl) {
+      import('flatpickr').then(async (mod) => {
+        fpFrom = mod.default(dateFromInputEl as HTMLElement, {
+          dateFormat: 'Y-m-d',
+          altInput: true,
+          altFormat: 'd/m/Y',
+          locale: await getFlatpickrLocale(mod.default),
+          disableMobile: true,
+          onChange: (selectedDates: Date[]) => {
+            filterDateFrom = selectedDates[0] ? selectedDates[0].toISOString().split('T')[0] : '';
+          }
+        });
+      });
+    }
+    if (dateToInputEl) {
+      import('flatpickr').then(async (mod) => {
+        fpTo = mod.default(dateToInputEl as HTMLElement, {
+          dateFormat: 'Y-m-d',
+          altInput: true,
+          altFormat: 'd/m/Y',
+          locale: await getFlatpickrLocale(mod.default),
+          disableMobile: true,
+          onChange: (selectedDates: Date[]) => {
+            filterDateTo = selectedDates[0] ? selectedDates[0].toISOString().split('T')[0] : '';
+          }
+        });
+      });
+    }
+    return () => {
+      fpFrom?.destroy();
+      fpTo?.destroy();
+    };
+  });
+
+  function toggleCategoryFilter(cat: string) {
+    filterCategories = filterCategories.includes(cat) ? filterCategories.filter(c => c !== cat) : [...filterCategories, cat];
+  }
+
+  function toggleContributorFilter(name: string) {
+    filterContributors = filterContributors.includes(name) ? filterContributors.filter(c => c !== name) : [...filterContributors, name];
+  }
+
+  function clearFilters() {
+    filterDateFrom = '';
+    filterDateTo = '';
+    filterAmountMin = '';
+    filterAmountMax = '';
+    filterCategories = [];
+    filterContributors = [];
+    filterRecurringOnly = false;
+    fpFrom?.clear();
+    fpTo?.clear();
+  }
 
   async function refresh() {
     const expense = getExpense();
@@ -67,6 +157,27 @@
       );
     }
 
+    if (filterDateFrom) items = items.filter(i => i.date >= filterDateFrom);
+    if (filterDateTo) items = items.filter(i => i.date <= filterDateTo);
+
+    const min = parseFloat(filterAmountMin);
+    if (!Number.isNaN(min)) items = items.filter(i => i.amount >= min);
+    const max = parseFloat(filterAmountMax);
+    if (!Number.isNaN(max)) items = items.filter(i => i.amount <= max);
+
+    if (filterCategories.length > 0) {
+      items = items.filter(i => filterCategories.includes(i.category));
+    }
+
+    if (filterContributors.length > 0) {
+      items = items.filter(i => {
+        const contributor = i.authorNickname || i.familyMember;
+        return !!contributor && filterContributors.includes(contributor);
+      });
+    }
+
+    if (filterRecurringOnly) items = items.filter(i => !!i.recurrence);
+
     items.sort((a, b) => {
       let cmp = 0;
       if (sortBy === 'date') {
@@ -97,6 +208,13 @@
     searchQuery;
     sortBy;
     sortDir;
+    filterDateFrom;
+    filterDateTo;
+    filterAmountMin;
+    filterAmountMax;
+    filterCategories;
+    filterContributors;
+    filterRecurringOnly;
     applyFilters();
   });
 
@@ -189,12 +307,101 @@
               {/if}
             </button>
           {/each}
+          <button onclick={() => showFilters = !showFilters}
+            class="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg font-medium transition-colors {showFilters || activeFilterCount > 0 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}">
+            <i class="ph ph-funnel"></i>
+            {t('filter.filters')}
+            {#if activeFilterCount > 0}
+              <span class="min-w-4 h-4 px-1 flex items-center justify-center rounded-full text-[10px] font-bold {showFilters ? 'bg-white/25' : 'bg-blue-600 text-white'}">{activeFilterCount}</span>
+            {/if}
+          </button>
         </div>
       </div>
     </div>
 
+    <div class="{showFilters ? 'flex' : 'hidden'} flex-wrap items-end gap-3 mb-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600 animate-fade-in">
+        <div>
+          <label for="expense-filter-date-from" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.dateFrom')}</label>
+          <input id="expense-filter-date-from" bind:this={dateFromInputEl} type="text" bind:value={filterDateFrom} placeholder={t('filter.dateFrom')}
+            class="w-32 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label for="expense-filter-date-to" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.dateTo')}</label>
+          <input id="expense-filter-date-to" bind:this={dateToInputEl} type="text" bind:value={filterDateTo} placeholder={t('filter.dateTo')}
+            class="w-32 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div>
+          <label for="expense-filter-amount-min" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.amountMin')}</label>
+          <input id="expense-filter-amount-min" type="number" step="0.01" bind:value={filterAmountMin} placeholder="0.00"
+            class="w-24 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label for="expense-filter-amount-max" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.amountMax')}</label>
+          <input id="expense-filter-amount-max" type="number" step="0.01" bind:value={filterAmountMax} placeholder="0.00"
+            class="w-24 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div class="relative">
+          <button type="button" onclick={() => categoryFilterOpen = !categoryFilterOpen}
+            class="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+            <i class="ph ph-tag"></i>
+            {filterCategories.length > 0 ? t('filter.selectedCount', { count: filterCategories.length }) : t('filter.category')}
+            <i class="ph ph-caret-down text-[10px]"></i>
+          </button>
+          {#if categoryFilterOpen}
+            <div role="presentation" class="fixed inset-0 z-40" onclick={() => categoryFilterOpen = false}></div>
+            <div class="absolute left-0 mt-2 w-56 max-h-64 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
+              {#if availableCategories.length === 0}
+                <p class="px-3 py-2 text-xs text-slate-400 dark:text-slate-500">{t('filter.allCategories')}</p>
+              {:else}
+                {#each availableCategories as cat (cat)}
+                  <label class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-slate-700 dark:text-slate-200">
+                    <input type="checkbox" checked={filterCategories.includes(cat)} onchange={() => toggleCategoryFilter(cat)} class="rounded text-blue-600 focus:ring-blue-500" />
+                    <span class="truncate">{cat}</span>
+                  </label>
+                {/each}
+              {/if}
+            </div>
+          {/if}
+        </div>
+
+        {#if availableContributors.length > 0}
+          <div class="relative">
+            <button type="button" onclick={() => contributorFilterOpen = !contributorFilterOpen}
+              class="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+              <i class="ph ph-user"></i>
+              {filterContributors.length > 0 ? t('filter.selectedCount', { count: filterContributors.length }) : t('filter.contributor')}
+              <i class="ph ph-caret-down text-[10px]"></i>
+            </button>
+            {#if contributorFilterOpen}
+              <div role="presentation" class="fixed inset-0 z-40" onclick={() => contributorFilterOpen = false}></div>
+              <div class="absolute left-0 mt-2 w-56 max-h-64 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
+                {#each availableContributors as name (name)}
+                  <label class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-slate-700 dark:text-slate-200">
+                    <input type="checkbox" checked={filterContributors.includes(name)} onchange={() => toggleContributorFilter(name)} class="rounded text-blue-600 focus:ring-blue-500" />
+                    <span class="truncate">{name}</span>
+                  </label>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
+
+        <label class="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+          <input type="checkbox" bind:checked={filterRecurringOnly} class="rounded text-blue-600 focus:ring-blue-500" />
+          {t('filter.recurringOnly')}
+        </label>
+
+        {#if activeFilterCount > 0}
+          <button onclick={clearFilters} class="px-3 py-1.5 text-xs font-medium text-blue-600 hover:underline cursor-pointer">
+            {t('filter.clear')}
+          </button>
+        {/if}
+    </div>
+
     {#if displayedItems.length === 0}
-      <p class="text-slate-500 dark:text-slate-400 text-center py-8">{searchQuery ? t('expense.noMatching') : t('expense.noEntriesYet')}</p>
+      <p class="text-slate-500 dark:text-slate-400 text-center py-8">{searchQuery || activeFilterCount > 0 ? t('expense.noMatching') : t('expense.noEntriesYet')}</p>
     {:else}
       <ul class="space-y-2">
         {#each displayedItems as item (item.id)}

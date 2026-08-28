@@ -80,7 +80,7 @@ src/
 └── views/
     ├── Dashboard.svelte        # Expense-only overview (summary, budget, recurring, add-expense form, charts, recent, member breakdown) — income is never shown or added here
     ├── IncomeView.svelte       # Income list with search/sort, recurring income, add-income form, member breakdown
-    ├── ExpenseView.svelte      # Expense list with search/sort, pie chart, trend, member breakdown
+    ├── ExpenseView.svelte      # Expense list with search/sort, filters (date range, amount range, category, contributor, recurring-only), pie chart, trend, member breakdown
     ├── SpacesView.svelte       # Manage Hubs — create, rename, delete, invite, rename/remove members
     ├── SummariesView.svelte    # Weekly AI-narrated summaries
     └── AccountView.svelte      # Profile, stats, export CSV, dark mode, password, budget goals, logout, categories, danger zone

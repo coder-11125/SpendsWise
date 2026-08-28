@@ -86,6 +86,20 @@ export const en: Dict = {
   "list.sortDate": "Date",
   "list.sortAmount": "Amount",
 
+  // ---- Filters ----
+  "filter.filters": "Filters",
+  "filter.clear": "Clear filters",
+  "filter.dateFrom": "From",
+  "filter.dateTo": "To",
+  "filter.amountMin": "Min amount",
+  "filter.amountMax": "Max amount",
+  "filter.category": "Category",
+  "filter.contributor": "Contributor",
+  "filter.recurringOnly": "Recurring only",
+  "filter.allCategories": "All categories",
+  "filter.allContributors": "All contributors",
+  "filter.selectedCount": "{count} selected",
+
   // ---- Trend ranges ----
   "trend.day": "Day",
   "trend.week": "Week",
