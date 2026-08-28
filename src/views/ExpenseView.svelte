@@ -60,6 +60,7 @@
       const q = searchQuery.toLowerCase();
       items = items.filter(i =>
         (i.category?.toLowerCase().includes(q)) ||
+        (i.name?.toLowerCase().includes(q)) ||
         (i.note?.toLowerCase().includes(q)) ||
         (i.familyMember?.toLowerCase().includes(q)) ||
         (i.authorNickname?.toLowerCase().includes(q))

@@ -55,6 +55,7 @@ export function mapServerExpense(exp: any): Expense {
     category: exp.category,
     date: (exp.date ?? '').substring(0, 10),
     familyMember: exp.familyMember ?? '',
+    name: exp.name ?? '',
     note: exp.note ?? '',
     currency: exp.currency ?? 'USD',
     recurrence: exp.recurrence ?? null,
@@ -229,10 +230,10 @@ export async function showApp(email: string, userId?: string): Promise<void> {
   syncTimezone();
 }
 
-export async function saveTransaction({ type, amount, category, date, note = '', recurrence }: Partial<Expense>): Promise<Expense | null> {
+export async function saveTransaction({ type, amount, category, date, name = '', note = '', recurrence }: Partial<Expense>): Promise<Expense | null> {
   if (!type || amount === undefined || Number.isNaN(amount) || !category || !date) return null;
 
-  const body: Record<string, any> = { type, amount, category, date, note, currency: getCurrentCurrency() };
+  const body: Record<string, any> = { type, amount, category, date, name, note, currency: getCurrentCurrency() };
   if (recurrence) {
     body.recurrence = {
       frequency: recurrence.frequency,
@@ -261,7 +262,7 @@ export async function saveTransaction({ type, amount, category, date, note = '',
   }
 
   return {
-    id: String(Date.now()), type: type as 'income' | 'expense', amount, category, date, note,
+    id: String(Date.now()), type: type as 'income' | 'expense', amount, category, date, name, note,
     currency: getCurrentCurrency(),
     recurrence: recurrence ?? null,
   };
@@ -293,6 +294,7 @@ export async function updateExpenseOnServer(id: string, data: Partial<Expense>):
   if (data.amount !== undefined) body.amount = data.amount;
   if (data.category !== undefined) body.category = data.category;
   if (data.date !== undefined) body.date = data.date;
+  if (data.name !== undefined) body.name = data.name;
   if (data.note !== undefined) body.note = data.note;
   if (data.currency !== undefined) body.currency = data.currency;
   if (data.recurrence !== undefined) {

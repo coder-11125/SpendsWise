@@ -200,6 +200,7 @@ const CHAT_TOOLS: Groq.Chat.Completions.ChatCompletionTool[] = [
           amount: { type: "number", description: "Positive amount" },
           category: { type: "string", description: "e.g. Food & Dining, Salary, Transportation" },
           date: { type: "string", description: "YYYY-MM-DD; defaults to today if omitted" },
+          name: { type: "string", description: "Optional short title/label for the transaction" },
           note: { type: "string", description: "Optional merchant/description" },
           currency: { type: "string", description: "3-letter code; defaults to USD" },
         },
@@ -220,6 +221,7 @@ const CHAT_TOOLS: Groq.Chat.Completions.ChatCompletionTool[] = [
           amount: { type: "number" },
           category: { type: "string" },
           date: { type: "string", description: "YYYY-MM-DD" },
+          name: { type: "string" },
           note: { type: "string" },
           currency: { type: "string" },
         },
@@ -275,6 +277,7 @@ async function executeChatTool(
       amount: args.amount,
       category: args.category.trim().slice(0, 64),
       date,
+      name: typeof args.name === "string" ? args.name.trim().slice(0, 120) : "",
       note: typeof args.note === "string" ? args.note.slice(0, 500) : "",
       currency: typeof args.currency === "string" && args.currency.trim() ? args.currency.trim().slice(0, 8) : "USD",
     });
@@ -298,6 +301,7 @@ async function executeChatTool(
       updates.amount = args.amount;
     }
     if (args.category !== undefined) updates.category = String(args.category).trim().slice(0, 64);
+    if (args.name !== undefined) updates.name = String(args.name).trim().slice(0, 120);
     if (args.note !== undefined) updates.note = String(args.note).slice(0, 500);
     if (args.currency !== undefined) updates.currency = String(args.currency).trim().slice(0, 8);
     if (args.date !== undefined) {
@@ -408,13 +412,14 @@ router.post(
 
       const lines = expenses.map((e) => {
         const d = new Date(e.date).toISOString().substring(0, 10);
+        const name = e.name ? ` "${e.name}"` : "";
         const note = e.note ? ` | ${e.note}` : "";
         const member = e.familyMember
           ? ` (${e.familyMember})`
           : e.authorUserId
             ? ` (by ${memberNames[String(e.authorUserId)] ?? "a Hub member"})`
             : "";
-        return `[${e._id}] ${d} | ${e.type} | ${e.currency} ${e.amount} | ${e.category}${note}${member}`;
+        return `[${e._id}] ${d} | ${e.type} | ${e.currency} ${e.amount} | ${e.category}${name}${note}${member}`;
       });
 
       const today = new Date().toISOString().substring(0, 10);
@@ -437,7 +442,7 @@ transactions on the user's behalf using the provided tools when they ask you to 
 "delete that Netflix charge", "change yesterday's grocery amount to 40"). Confirm what you did in your reply.
 Never invent a transaction id — only use ids that appear in the history above.
 Transaction ids are internal identifiers only: never show a transaction id to the user. When you
-confirm an edit or deletion, describe the transaction by its date, category, amount, and note instead
+confirm an edit or deletion, describe the transaction by its date, category, amount, and name/note instead
 (e.g. "Updated the $40 Groceries charge from yesterday to $35.50").${languageLine}`;
 
       const safeHistory = history

@@ -44,9 +44,12 @@
     </div>
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2">
-        <p class="font-medium text-slate-800 dark:text-slate-100 truncate">{item.category}</p>
+        <p class="font-medium text-slate-800 dark:text-slate-100 truncate">{item.name || item.category}</p>
         {#if options.showTypeBadge}
           <span class="text-xs {item.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400'} px-1.5 py-0.5 rounded-full">{item.type}</span>
+        {/if}
+        {#if item.name}
+          <span class="text-xs bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-300 px-1.5 py-0.5 rounded-full truncate max-w-[8rem]">{item.category}</span>
         {/if}
         {#if item.authorNickname}
           <span class="text-xs bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded-full">{item.authorNickname}</span>

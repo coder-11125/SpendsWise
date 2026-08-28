@@ -91,8 +91,8 @@
     if (expenses.length === 0) return;
     const inSpace = !!getCurrentSpaceId();
     const headers = inSpace
-      ? ['type', 'amount', 'category', 'date', 'contributor', 'note', 'currency']
-      : ['type', 'amount', 'category', 'date', 'familyMember', 'note', 'currency'];
+      ? ['type', 'amount', 'category', 'date', 'name', 'contributor', 'note', 'currency']
+      : ['type', 'amount', 'category', 'date', 'name', 'familyMember', 'note', 'currency'];
     const rows = expenses.map(e => headers.map(h => {
       const key = h === 'contributor' ? 'authorNickname' : h;
       const val = (e as Record<string, any>)[key] || '';

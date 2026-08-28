@@ -12,6 +12,7 @@ export interface Expense {
   category: string;
   date: string;
   familyMember?: string;
+  name?: string;
   note?: string;
   currency: string;
   recurrence?: Recurrence | null;

@@ -15,6 +15,7 @@
   let amount = $state<string>('');
   let category = $state<string>('Food & Dining');
   let date = $state<string>(new Date().toISOString().split('T')[0]);
+  let name = $state<string>('');
   let note = $state<string>('');
   let submitting = $state<boolean>(false);
   let fpInstance = $state<any>(null);
@@ -116,12 +117,14 @@
       amount: parseFloat(amount),
       category,
       date,
+      name,
       note,
       recurrence,
     });
     submitting = false;
     if (result) {
       amount = '';
+      name = '';
       note = '';
       date = new Date().toISOString().split('T')[0];
       isRecurring = false;
@@ -145,7 +148,7 @@
     try {
       const data = await parseReceiptsBulk(dataUrls, ocrPro);
       receiptProgress = '';
-      const flat: Array<{ type: 'income' | 'expense'; amount: number; category: string; date: string; note: string }> = [];
+      const flat: Array<{ type: 'income' | 'expense'; amount: number; category: string; date: string; name: string; note: string }> = [];
       const today = new Date().toISOString().split('T')[0];
       for (const r of data.results ?? []) {
         if (r.error) continue;
@@ -155,7 +158,8 @@
             amount: item.amount,
             category: item.category || 'Other',
             date: r.date || today,
-            note: item.name || item.note || '',
+            name: item.name || '',
+            note: item.note || '',
           });
         }
       }
@@ -267,6 +271,11 @@
   {/if}
 
   <div class="space-y-4">
+    <div>
+      <label for="expense-name" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('form.name')}</label>
+      <input id="expense-name" type="text" bind:value={name} placeholder={t('form.optionalName')} class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />
+    </div>
+
     <div>
       <label for="expense-amount" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('form.amount')}</label>
       <input id="expense-amount" type="number" step="0.01" bind:value={amount} placeholder="0.00" class="input-field w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:outline-none" />

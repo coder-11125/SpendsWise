@@ -136,6 +136,7 @@ server/src/
   category: String,
   currency: String (default "USD"),
   familyMember: String,             // legacy free-text tag, superseded by Spaces — still readable/exportable
+  name: String,                    // optional short title/label for the transaction
   note: String,
   date: Date,
   recurrence: {                    // null for non-recurring

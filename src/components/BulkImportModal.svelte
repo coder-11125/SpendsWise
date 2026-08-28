@@ -17,6 +17,7 @@
     amount: string;
     category: string;
     date: string;
+    name: string;
     note: string;
     editing: boolean;
   }
@@ -31,6 +32,7 @@
         amount: r.amount != null ? String(r.amount) : '',
         category: r.category || 'Other',
         date: r.date || today,
+        name: r.name || '',
         note: r.note || '',
         editing: false,
       }));
@@ -58,6 +60,7 @@
       amount: '',
       category: 'Food & Dining',
       date: today,
+      name: '',
       note: '',
       editing: true,
     }];
@@ -81,6 +84,7 @@
         amount,
         category: item.category,
         date: item.date,
+        name: item.name,
         note: item.note,
       });
       if (result) saved.push(result);
@@ -150,6 +154,12 @@
                   <input id="item-{idx}-date" type="date" bind:value={item.date} class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
+                  <label for="item-{idx}-name" class="text-xs text-slate-500 mb-1 block">{t('form.name')}</label>
+                  <input id="item-{idx}-name" type="text" bind:value={item.name} placeholder={t('bulk.optional')} class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+              <div class="grid grid-cols-1 gap-3">
+                <div>
                   <label for="item-{idx}-note" class="text-xs text-slate-500 mb-1 block">{t('form.note')}</label>
                   <input id="item-{idx}-note" type="text" bind:value={item.note} placeholder={t('bulk.optional')} class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
@@ -165,7 +175,7 @@
             </div>
           {:else}
             <div class="flex items-center justify-between">
-              <div class="flex-1 grid grid-cols-5 gap-3 text-sm">
+              <div class="flex-1 grid grid-cols-3 sm:grid-cols-6 gap-3 text-sm">
                 <div>
                   <span class="text-xs text-slate-400 block">{t('form.categoryType')}</span>
                   <span class="font-medium {item.type === 'expense' ? 'text-rose-600' : 'text-emerald-600'}">{item.type}</span>
@@ -181,6 +191,10 @@
                 <div>
                   <span class="text-xs text-slate-400 block">{t('form.date')}</span>
                   <span class="text-slate-700">{item.date}</span>
+                </div>
+                <div>
+                  <span class="text-xs text-slate-400 block">{t('form.name')}</span>
+                  <span class="text-slate-700 truncate block">{item.name || '—'}</span>
                 </div>
                 <div>
                   <span class="text-xs text-slate-400 block">{t('form.note')}</span>

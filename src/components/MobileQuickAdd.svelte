@@ -18,6 +18,7 @@
   let amount = $state(0);
   let category = $state('');
   let date = $state(new Date().toISOString().split('T')[0]);
+  let name = $state('');
   let note = $state('');
   let loading = $state(false);
   let error = $state('');
@@ -76,13 +77,14 @@
     }
     loading = true;
     try {
-      const entry = await saveTransaction({ type, amount, category, date, note });
+      const entry = await saveTransaction({ type, amount, category, date, name, note });
       if (entry) {
         addExpenseItem(entry);
         type = 'expense';
         amount = 0;
         category = '';
         date = new Date().toISOString().split('T')[0];
+        name = '';
         note = '';
         onclose?.();
       } else {
@@ -156,7 +158,8 @@
             amount: item.amount,
             category: item.category || 'Other',
             date: r.date || today,
-            note: item.name || item.note || '',
+            name: item.name || '',
+            note: item.note || '',
           });
         }
       }
@@ -229,6 +232,17 @@
             </select>
           </div>
         {/if}
+
+        <div>
+          <label for="mqName" class="block text-sm font-medium text-slate-700 mb-1">{t('form.name')}</label>
+          <input
+            id="mqName"
+            type="text"
+            bind:value={name}
+            placeholder={t('form.optionalName')}
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          />
+        </div>
 
         <div>
           <label for="mqAmount" class="block text-sm font-medium text-slate-700 mb-1">{t('form.amount')}</label>

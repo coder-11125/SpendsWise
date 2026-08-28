@@ -318,7 +318,7 @@ describe("AI chat agentic tools", () => {
     const systemPrompt = createMock.mock.calls[0][0].messages[0].content as string;
     expect(systemPrompt).toContain(`[${expense._id}]`);
     expect(systemPrompt).toMatch(/never show a transaction id to the user/i);
-    expect(systemPrompt).toMatch(/describe the transaction by its date, category, amount, and note/i);
+    expect(systemPrompt).toMatch(/describe the transaction by its date, category, amount, and name\/note/i);
   });
 
   it("instructs the model to reply in Spanish when lang is es", async () => {

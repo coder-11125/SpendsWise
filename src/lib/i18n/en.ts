@@ -205,6 +205,8 @@ export const en: Dict = {
   "form.amount": "Amount",
   "form.categoryType": "Type",
   "form.date": "Date",
+  "form.name": "Name",
+  "form.optionalName": "Optional name...",
   "form.note": "Note",
   "form.optionalNote": "Optional note...",
   "form.recurringTransaction": "Recurring Transaction",

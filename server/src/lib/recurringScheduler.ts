@@ -84,6 +84,7 @@ async function processRecurringForModel(
       amount: template.amount,
       category: template.category,
       currency: template.currency,
+      name: template.name || "",
       note: template.note || "",
       date: new Date(rec.nextDueDate),
       recurrence: undefined,

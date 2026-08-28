@@ -22,6 +22,7 @@ const expenseSchema = new Schema(
     category: { type: String, required: true, trim: true, maxlength: 64 },
     currency: { type: String, default: "USD", trim: true, maxlength: 8 },
     familyMember: { type: String, default: "", trim: true, maxlength: 64 },
+    name: { type: String, default: "", trim: true, maxlength: 120 },
     note: { type: String, default: "", trim: true, maxlength: 500 },
     date: { type: Date, required: true, default: () => new Date() },
     recurrence: { type: recurrenceSchema, default: null },

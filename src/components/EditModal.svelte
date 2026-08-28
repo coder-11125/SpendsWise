@@ -18,6 +18,7 @@
   let amount = $state(0);
   let category = $state('');
   let date = $state('');
+  let name = $state('');
   let note = $state('');
   let error = $state('');
   let loading = $state(false);
@@ -38,6 +39,7 @@
       amount = expenseItem.amount;
       category = expenseItem.category;
       date = expenseItem.date;
+      name = expenseItem.name || '';
       note = expenseItem.note || '';
       hasRecurrence = !!expenseItem.recurrence;
       recurrenceFrequency = expenseItem.recurrence?.frequency || 'monthly';
@@ -102,7 +104,7 @@
       }
 
       const updated = await updateExpenseOnServer(expenseItem.id, {
-        type, amount, category, date, note, currency: getCurrentCurrency(),
+        type, amount, category, date, name, note, currency: getCurrentCurrency(),
         recurrence,
       });
       updateExpenseItem(updated);
@@ -163,6 +165,17 @@
             type={type}
             bind:value={category}
             selectClass="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="editName" class="block text-sm font-medium text-slate-700 mb-1">{t('form.name')}</label>
+          <input
+            id="editName"
+            type="text"
+            bind:value={name}
+            placeholder={t('form.optionalName')}
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
 

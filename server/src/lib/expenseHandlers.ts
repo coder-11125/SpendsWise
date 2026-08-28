@@ -88,7 +88,7 @@ export function createExpenseCrudRouter(options: ExpenseCrudOptions): Router {
   router.post(
     "/",
     asyncHandler(async (req, res) => {
-      const { type, amount, category, date, note = "", currency = "USD", recurrence } = req.body ?? {};
+      const { type, amount, category, date, name = "", note = "", currency = "USD", recurrence } = req.body ?? {};
 
       if (!type || !["income", "expense"].includes(type)) {
         return res.status(400).json({ error: "type must be 'income' or 'expense'" });
@@ -109,6 +109,7 @@ export function createExpenseCrudRouter(options: ExpenseCrudOptions): Router {
         amount,
         category,
         date,
+        name,
         note,
         currency,
       };
@@ -137,7 +138,7 @@ export function createExpenseCrudRouter(options: ExpenseCrudOptions): Router {
       if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ error: "Invalid ID" });
       }
-      const allowed = ["type", "amount", "category", "date", "note", "currency", ...extraFields];
+      const allowed = ["type", "amount", "category", "date", "name", "note", "currency", ...extraFields];
       const updates: Record<string, unknown> = {};
       for (const key of allowed) {
         if (req.body?.[key] !== undefined) updates[key] = req.body[key];
@@ -233,6 +234,7 @@ export function createExpenseCrudRouter(options: ExpenseCrudOptions): Router {
           amount: row.amount,
           category: row.category,
           date: row.date,
+          name: row.name ?? "",
           note: row.note ?? "",
           currency: row.currency ?? "USD",
         };
