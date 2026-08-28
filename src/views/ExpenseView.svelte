@@ -1,15 +1,14 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { getExpense, getCurrentCurrency, addExpenseItem, removeExpenseItem, getExpenseTrendRange, setExpenseTrendRange, getCurrentSpaceId, getCurrentSpace, getAllCategories, getExpenseMode, navigate, confirmDialog } from '../lib/state.svelte.js';
+  import { getExpense, getCurrentCurrency, removeExpenseItem, getExpenseTrendRange, setExpenseTrendRange, getCurrentSpaceId, getCurrentSpace, getAllCategories, getExpenseMode, navigate, confirmDialog } from '../lib/state.svelte.js';
   import { calculateExpenseSummary, calculateExpenseByCategory, calculateMemberBreakdown } from '../lib/calculations.svelte.js';
   import { calculateExpenseTrendData } from '../lib/utils.js';
   import { formatMoney } from '../lib/currency.js';
-  import { saveTransaction, deleteExpenseOnServer } from '../lib/api.js';
+  import { deleteExpenseOnServer } from '../lib/api.js';
   import { t } from '../lib/i18n.svelte.js';
   import { getFlatpickrLocale } from '../lib/flatpickrLocale.js';
   import type { Expense, ExpenseSummary, CategoryData, TrendPoint } from '../types.js';
   import BudgetOverview from '../components/BudgetOverview.svelte';
-  import ExpenseForm from '../components/ExpenseForm.svelte';
   import RecurringUpcoming from '../components/RecurringUpcoming.svelte';
   import PieChart from '../components/PieChart.svelte';
   import TopCategories from '../components/TopCategories.svelte';
@@ -38,8 +37,8 @@
   let memberTotal = $state<number>(0);
   let inSpace = $derived(!!getCurrentSpaceId());
 
-  // Filters (list mode)
-  let showFilters = $state<boolean>(false);
+  // Filters (list mode) — search, sort, and all filters live in one dropdown
+  let filterDropdownOpen = $state<boolean>(false);
   let filterDateFrom = $state<string>('');
   let filterDateTo = $state<string>('');
   let filterAmountMin = $state<string>('');
@@ -47,8 +46,6 @@
   let filterCategories = $state<string[]>([]);
   let filterContributors = $state<string[]>([]);
   let filterRecurringOnly = $state<boolean>(false);
-  let categoryFilterOpen = $state<boolean>(false);
-  let contributorFilterOpen = $state<boolean>(false);
   let dateFromInputEl = $state<HTMLInputElement | null>(null);
   let dateToInputEl = $state<HTMLInputElement | null>(null);
   let fpFrom = $state<any>(null);
@@ -265,8 +262,8 @@
     }
   }
 
-  async function handleAdd(saved: Expense | null) {
-    if (saved) addExpenseItem(saved);
+  function openQuickAdd() {
+    window.dispatchEvent(new CustomEvent('open-quick-add'));
   }
 
   function handleEdit(item: Expense) {
@@ -287,69 +284,184 @@
 </script>
 
 <div class="space-y-6">
-  <div class="relative inline-block">
-    <button type="button" onclick={() => modeDropdownOpen = !modeDropdownOpen}
-      aria-label={t('expense.viewMode')}
-      class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-semibold text-slate-800 dark:text-slate-100 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
-      <i class="ph {mode === 'list' ? 'ph-list-bullets' : 'ph-squares-four'} text-blue-600"></i>
-      {mode === 'list' ? t('expense.modeList') : t('expense.modeOverview')}
-      <i class="ph ph-caret-down text-xs text-slate-400"></i>
+  <div class="flex flex-wrap items-center gap-3">
+    <div class="relative inline-block">
+      <button type="button" onclick={() => modeDropdownOpen = !modeDropdownOpen}
+        aria-label={t('expense.viewMode')}
+        class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-semibold text-slate-800 dark:text-slate-100 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+        <i class="ph {mode === 'list' ? 'ph-list-bullets' : 'ph-squares-four'} text-blue-600"></i>
+        {mode === 'list' ? t('expense.modeList') : t('expense.modeOverview')}
+        <i class="ph ph-caret-down text-xs text-slate-400"></i>
+      </button>
+
+      {#if modeDropdownOpen}
+        <div role="presentation" class="fixed inset-0 z-40" onclick={() => modeDropdownOpen = false}></div>
+        <div class="absolute left-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
+          <button onclick={() => selectMode('overview')}
+            class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors {mode === 'overview' ? 'text-blue-600 font-medium' : 'text-slate-700 dark:text-slate-200'}">
+            <i class="ph ph-squares-four"></i>
+            {t('expense.modeOverview')}
+            {#if mode === 'overview'}<i class="ph ph-check ml-auto text-blue-600"></i>{/if}
+          </button>
+          <button onclick={() => selectMode('list')}
+            class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors {mode === 'list' ? 'text-blue-600 font-medium' : 'text-slate-700 dark:text-slate-200'}">
+            <i class="ph ph-list-bullets"></i>
+            {t('expense.modeList')}
+            {#if mode === 'list'}<i class="ph ph-check ml-auto text-blue-600"></i>{/if}
+          </button>
+        </div>
+      {/if}
+    </div>
+
+    <button onclick={openQuickAdd}
+      class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors cursor-pointer">
+      <i class="ph ph-plus-circle"></i>
+      {t('form.addTransaction')}
     </button>
 
-    {#if modeDropdownOpen}
-      <div role="presentation" class="fixed inset-0 z-40" onclick={() => modeDropdownOpen = false}></div>
-      <div class="absolute left-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
-        <button onclick={() => selectMode('overview')}
-          class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors {mode === 'overview' ? 'text-blue-600 font-medium' : 'text-slate-700 dark:text-slate-200'}">
-          <i class="ph ph-squares-four"></i>
-          {t('expense.modeOverview')}
-          {#if mode === 'overview'}<i class="ph ph-check ml-auto text-blue-600"></i>{/if}
+    {#if mode === 'list'}
+      <div class="relative inline-block">
+        <button type="button" onclick={() => filterDropdownOpen = !filterDropdownOpen}
+          class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-semibold text-slate-800 dark:text-slate-100 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+          <i class="ph ph-funnel text-blue-600"></i>
+          {t('filter.filters')}
+          {#if activeFilterCount > 0}
+            <span class="min-w-4 h-4 px-1 flex items-center justify-center rounded-full text-[10px] font-bold bg-blue-600 text-white">{activeFilterCount}</span>
+          {/if}
+          <i class="ph ph-caret-down text-xs text-slate-400"></i>
         </button>
-        <button onclick={() => selectMode('list')}
-          class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors {mode === 'list' ? 'text-blue-600 font-medium' : 'text-slate-700 dark:text-slate-200'}">
-          <i class="ph ph-list-bullets"></i>
-          {t('expense.modeList')}
-          {#if mode === 'list'}<i class="ph ph-check ml-auto text-blue-600"></i>{/if}
-        </button>
+
+        {#if filterDropdownOpen}
+          <div role="presentation" class="fixed inset-0 z-40" onclick={() => filterDropdownOpen = false}></div>
+          <div class="absolute left-0 mt-2 w-80 max-w-[calc(100vw-2rem)] max-h-[32rem] overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 p-4 space-y-4 animate-fade-in">
+            <div>
+              <label for="expense-filter-search" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('expense.searchPlaceholder')}</label>
+              <div class="relative">
+                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input id="expense-filter-search" type="text" placeholder={t('expense.searchPlaceholder')}
+                  bind:value={searchQuery}
+                  class="w-full pl-9 pr-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+
+            <div>
+              <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('list.sortDate')} / {t('list.sortAmount')}</p>
+              <div class="flex gap-1">
+                {#each [{k:'date' as const,l:t('list.sortDate')},{k:'amount' as const,l:t('list.sortAmount')}] as opt}
+                  <button onclick={() => toggleSort(opt.k)}
+                    class="px-3 py-1.5 text-xs rounded-lg font-medium transition-colors {sortBy === opt.k ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}">
+                    {opt.l}
+                    {#if sortBy === opt.k}
+                      <i class="ph ph-caret-{sortDir === 'asc' ? 'up' : 'down'} ml-1"></i>
+                    {/if}
+                  </button>
+                {/each}
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="expense-filter-date-from" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.dateFrom')}</label>
+                <input id="expense-filter-date-from" bind:this={dateFromInputEl} type="text" bind:value={filterDateFrom} placeholder={t('filter.dateFrom')}
+                  class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label for="expense-filter-date-to" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.dateTo')}</label>
+                <input id="expense-filter-date-to" bind:this={dateToInputEl} type="text" bind:value={filterDateTo} placeholder={t('filter.dateTo')}
+                  class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="expense-filter-amount-min" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.amountMin')}</label>
+                <input id="expense-filter-amount-min" type="number" step="0.01" bind:value={filterAmountMin} placeholder="0.00"
+                  class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label for="expense-filter-amount-max" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.amountMax')}</label>
+                <input id="expense-filter-amount-max" type="number" step="0.01" bind:value={filterAmountMax} placeholder="0.00"
+                  class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+
+            <div>
+              <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.category')}</p>
+              {#if availableCategories.length === 0}
+                <p class="text-xs text-slate-400 dark:text-slate-500">{t('filter.allCategories')}</p>
+              {:else}
+                <div class="max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-600 rounded-lg">
+                  {#each availableCategories as cat (cat)}
+                    <label class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-slate-700 dark:text-slate-200">
+                      <input type="checkbox" checked={filterCategories.includes(cat)} onchange={() => toggleCategoryFilter(cat)} class="rounded text-blue-600 focus:ring-blue-500" />
+                      <span class="truncate">{cat}</span>
+                    </label>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+
+            {#if availableContributors.length > 0}
+              <div>
+                <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.contributor')}</p>
+                <div class="max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-600 rounded-lg">
+                  {#each availableContributors as name (name)}
+                    <label class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-slate-700 dark:text-slate-200">
+                      <input type="checkbox" checked={filterContributors.includes(name)} onchange={() => toggleContributorFilter(name)} class="rounded text-blue-600 focus:ring-blue-500" />
+                      <span class="truncate">{name}</span>
+                    </label>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+
+            <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+              <input type="checkbox" bind:checked={filterRecurringOnly} class="rounded text-blue-600 focus:ring-blue-500" />
+              {t('filter.recurringOnly')}
+            </label>
+
+            {#if activeFilterCount > 0}
+              <button onclick={clearFilters} class="text-xs font-medium text-blue-600 hover:underline cursor-pointer">
+                {t('filter.clear')}
+              </button>
+            {/if}
+          </div>
+        {/if}
       </div>
     {/if}
   </div>
 
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
-      <p class="text-sm text-slate-500 dark:text-slate-400">{t('expense.total')}</p>
-      <p class="text-2xl font-bold text-rose-600">{formatMoney(summary.total, getCurrentCurrency())}</p>
-    </div>
-    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
-      <p class="text-sm text-slate-500 dark:text-slate-400">{t('expense.entries')}</p>
-      <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{summary.count}</p>
-    </div>
-    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
-      <p class="text-sm text-slate-500 dark:text-slate-400">{t('expense.average')}</p>
-      <p class="text-2xl font-bold text-orange-600">{formatMoney(summary.average, getCurrentCurrency())}</p>
-    </div>
-  </div>
-
   {#if mode === 'overview'}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+        <p class="text-sm text-slate-500 dark:text-slate-400">{t('expense.total')}</p>
+        <p class="text-2xl font-bold text-rose-600">{formatMoney(summary.total, getCurrentCurrency())}</p>
+      </div>
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+        <p class="text-sm text-slate-500 dark:text-slate-400">{t('expense.entries')}</p>
+        <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{summary.count}</p>
+      </div>
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+        <p class="text-sm text-slate-500 dark:text-slate-400">{t('expense.average')}</p>
+        <p class="text-2xl font-bold text-orange-600">{formatMoney(summary.average, getCurrentCurrency())}</p>
+      </div>
+    </div>
+
     <BudgetOverview />
 
     <RecurringUpcoming type="expense" />
 
-    <ExpenseForm onadd={handleAdd} />
-  {/if}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <PieChart {categoryData} total={categoryTotal} currency={getCurrentCurrency()} />
+      <TopCategories {categoryData} total={categoryTotal} currency={getCurrentCurrency()} />
+    </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <PieChart {categoryData} total={categoryTotal} currency={getCurrentCurrency()} />
-    <TopCategories {categoryData} total={categoryTotal} currency={getCurrentCurrency()} />
-  </div>
+    <TrendChart points={trendPoints} total={trendTotal} average={trendAverage} periodLabel={trendPeriodLabel} currency={getCurrentCurrency()} range={trendRange} onRangeChange={handleTrendChange} />
 
-  <TrendChart points={trendPoints} total={trendTotal} average={trendAverage} periodLabel={trendPeriodLabel} currency={getCurrentCurrency()} range={trendRange} onRangeChange={handleTrendChange} />
+    {#if inSpace}
+      <MemberBreakdown {memberData} total={memberTotal} currency={getCurrentCurrency()} />
+    {/if}
 
-  {#if inSpace}
-    <MemberBreakdown {memberData} total={memberTotal} currency={getCurrentCurrency()} />
-  {/if}
-
-  {#if mode === 'overview'}
     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('expense.recentExpenses')}</h2>
@@ -379,118 +491,6 @@
     </div>
   {:else}
     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('expense.entries')}</h2>
-        <div class="flex flex-col sm:flex-row gap-3 flex-1 sm:justify-end">
-          <div class="relative max-w-xs w-full">
-            <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-            <input type="text" placeholder={t('expense.searchPlaceholder')}
-              bind:value={searchQuery}
-              class="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div class="flex gap-1">
-            {#each [{k:'date' as const,l:t('list.sortDate')},{k:'amount' as const,l:t('list.sortAmount')}] as opt}
-              <button onclick={() => toggleSort(opt.k)}
-                class="px-3 py-2 text-xs rounded-lg font-medium transition-colors {sortBy === opt.k ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}">
-                {opt.l}
-                {#if sortBy === opt.k}
-                  <i class="ph ph-caret-{sortDir === 'asc' ? 'up' : 'down'} ml-1"></i>
-                {/if}
-              </button>
-            {/each}
-            <button onclick={() => showFilters = !showFilters}
-              class="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg font-medium transition-colors {showFilters || activeFilterCount > 0 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}">
-              <i class="ph ph-funnel"></i>
-              {t('filter.filters')}
-              {#if activeFilterCount > 0}
-                <span class="min-w-4 h-4 px-1 flex items-center justify-center rounded-full text-[10px] font-bold {showFilters ? 'bg-white/25' : 'bg-blue-600 text-white'}">{activeFilterCount}</span>
-              {/if}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="{showFilters ? 'flex' : 'hidden'} flex-wrap items-end gap-3 mb-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600 animate-fade-in">
-          <div>
-            <label for="expense-filter-date-from" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.dateFrom')}</label>
-            <input id="expense-filter-date-from" bind:this={dateFromInputEl} type="text" bind:value={filterDateFrom} placeholder={t('filter.dateFrom')}
-              class="w-32 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label for="expense-filter-date-to" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.dateTo')}</label>
-            <input id="expense-filter-date-to" bind:this={dateToInputEl} type="text" bind:value={filterDateTo} placeholder={t('filter.dateTo')}
-              class="w-32 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-
-          <div>
-            <label for="expense-filter-amount-min" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.amountMin')}</label>
-            <input id="expense-filter-amount-min" type="number" step="0.01" bind:value={filterAmountMin} placeholder="0.00"
-              class="w-24 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label for="expense-filter-amount-max" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">{t('filter.amountMax')}</label>
-            <input id="expense-filter-amount-max" type="number" step="0.01" bind:value={filterAmountMax} placeholder="0.00"
-              class="w-24 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-
-          <div class="relative">
-            <button type="button" onclick={() => categoryFilterOpen = !categoryFilterOpen}
-              class="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">
-              <i class="ph ph-tag"></i>
-              {filterCategories.length > 0 ? t('filter.selectedCount', { count: filterCategories.length }) : t('filter.category')}
-              <i class="ph ph-caret-down text-[10px]"></i>
-            </button>
-            {#if categoryFilterOpen}
-              <div role="presentation" class="fixed inset-0 z-40" onclick={() => categoryFilterOpen = false}></div>
-              <div class="absolute left-0 mt-2 w-56 max-h-64 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
-                {#if availableCategories.length === 0}
-                  <p class="px-3 py-2 text-xs text-slate-400 dark:text-slate-500">{t('filter.allCategories')}</p>
-                {:else}
-                  {#each availableCategories as cat (cat)}
-                    <label class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-slate-700 dark:text-slate-200">
-                      <input type="checkbox" checked={filterCategories.includes(cat)} onchange={() => toggleCategoryFilter(cat)} class="rounded text-blue-600 focus:ring-blue-500" />
-                      <span class="truncate">{cat}</span>
-                    </label>
-                  {/each}
-                {/if}
-              </div>
-            {/if}
-          </div>
-
-          {#if availableContributors.length > 0}
-            <div class="relative">
-              <button type="button" onclick={() => contributorFilterOpen = !contributorFilterOpen}
-                class="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">
-                <i class="ph ph-user"></i>
-                {filterContributors.length > 0 ? t('filter.selectedCount', { count: filterContributors.length }) : t('filter.contributor')}
-                <i class="ph ph-caret-down text-[10px]"></i>
-              </button>
-              {#if contributorFilterOpen}
-                <div role="presentation" class="fixed inset-0 z-40" onclick={() => contributorFilterOpen = false}></div>
-                <div class="absolute left-0 mt-2 w-56 max-h-64 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
-                  {#each availableContributors as name (name)}
-                    <label class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-slate-700 dark:text-slate-200">
-                      <input type="checkbox" checked={filterContributors.includes(name)} onchange={() => toggleContributorFilter(name)} class="rounded text-blue-600 focus:ring-blue-500" />
-                      <span class="truncate">{name}</span>
-                    </label>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          {/if}
-
-          <label class="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
-            <input type="checkbox" bind:checked={filterRecurringOnly} class="rounded text-blue-600 focus:ring-blue-500" />
-            {t('filter.recurringOnly')}
-          </label>
-
-          {#if activeFilterCount > 0}
-            <button onclick={clearFilters} class="px-3 py-1.5 text-xs font-medium text-blue-600 hover:underline cursor-pointer">
-              {t('filter.clear')}
-            </button>
-          {/if}
-      </div>
-
       {#if displayedItems.length === 0}
         <p class="text-slate-500 dark:text-slate-400 text-center py-8">{searchQuery || activeFilterCount > 0 ? t('expense.noMatching') : t('expense.noEntriesYet')}</p>
       {:else}

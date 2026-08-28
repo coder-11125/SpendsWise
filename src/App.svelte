@@ -75,6 +75,16 @@
     }
   });
 
+  // Lets any view (not just the mobile bottom nav) open the Quick Add modal,
+  // e.g. the "Add Transaction" button on the Expense view.
+  $effect(() => {
+    if (typeof window !== 'undefined') {
+      const listener = () => { showMobileQuickAdd = true; };
+      window.addEventListener('open-quick-add', listener);
+      return () => window.removeEventListener('open-quick-add', listener);
+    }
+  });
+
   onMount(async () => {
     initRouter();
     await Promise.allSettled([fetchCsrfToken(), checkSession()]);

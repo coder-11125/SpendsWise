@@ -211,7 +211,7 @@ export const en: Dict = {
   "summaries.vsPreviousWeek": "{pct}% vs previous week",
 
   // ---- Forms ----
-  "form.addTransaction": "Add Expense",
+  "form.addTransaction": "Add Transaction",
   "form.addIncome": "Add Income",
   "form.space": "Space",
   "form.amount": "Amount",
