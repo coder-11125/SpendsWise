@@ -27,9 +27,9 @@
   let showChatsMenu = $state<boolean>(false);
 
   // The ledger this conversation targets. New/legacy chats fall back to the
-  // dashboard's current selection until the user pins one from the in-chat
-  // picker; once pinned, the chat keeps its own Hub independent of the
-  // dashboard.
+  // app's current Hub selection until the user pins one from the in-chat
+  // picker; once pinned, the chat keeps its own Hub independent of that
+  // selection.
   let pinnedSpaceId = $derived(activeChat.spaceId === undefined ? getCurrentSpaceId() : activeChat.spaceId);
   let spaces = $derived(getSpaces());
   let aiSpace = $derived(pinnedSpaceId ? spaces.find(s => s.id === pinnedSpaceId) ?? null : null);

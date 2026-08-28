@@ -9,9 +9,8 @@
   let isLoggedIn = $derived(getIsLoggedIn());
 
   let navItems = $derived([
-    { filter: 'dashboard', icon: 'ph-chart-pie-slice', label: t('nav.dashboard') },
+    { filter: 'expense', icon: 'ph-chart-pie-slice', label: t('nav.expense') },
     { filter: 'income', icon: 'ph-trend-up', label: t('nav.income') },
-    { filter: 'expense', icon: 'ph-trend-down', label: t('nav.expense') },
     { filter: 'spaces', icon: 'ph-users-three', label: t('nav.spaces') },
     { filter: 'summaries', icon: 'ph-newspaper', label: t('nav.summaries') },
     { filter: 'ai', icon: 'ph-chat-circle-dots', label: t('nav.ai') },

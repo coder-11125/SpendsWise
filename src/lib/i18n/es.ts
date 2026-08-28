@@ -22,7 +22,6 @@ export const es: Dict = {
   "type.income": "Ingreso",
 
   // ---- Navigation ----
-  "nav.dashboard": "Panel",
   "nav.income": "Ingresos",
   "nav.expense": "Gastos",
   "nav.spaces": "Espacios",
@@ -60,12 +59,6 @@ export const es: Dict = {
   "login.or": "o",
   "login.signInWithGoogle": "Iniciar sesión con Google",
 
-  // ---- Dashboard ----
-  "dashboard.recentExpenses": "Gastos recientes",
-  "dashboard.noExpensesYet": "Aún no hay gastos.",
-  "dashboard.deleteItem": "¿Eliminar este elemento?",
-  "dashboard.unableDelete": "No se pudo eliminar este elemento. Inténtalo de nuevo.",
-
   // ---- Expense / Income lists ----
   "expense.total": "Gastos totales",
   "expense.entries": "Registros de gastos",
@@ -75,6 +68,10 @@ export const es: Dict = {
   "expense.noEntriesYet": "Aún no hay gastos.",
   "expense.deleteConfirm": "¿Eliminar este gasto?",
   "expense.unableDelete": "No se pudo eliminar este gasto. Inténtalo de nuevo.",
+  "expense.recentExpenses": "Gastos recientes",
+  "expense.viewMode": "Vista",
+  "expense.modeOverview": "Resumen",
+  "expense.modeList": "Todos los gastos",
   "income.total": "Ingresos totales",
   "income.entries": "Registros de ingresos",
   "income.average": "Ingreso promedio",

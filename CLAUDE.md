@@ -64,7 +64,7 @@ src/
 │   ├── CurrencyModal.svelte    # Currency selector with live rates
 │   ├── DeleteAllModal.svelte   # Confirm delete-all-transactions
 │   ├── EditModal.svelte        # Edit expense modal (flatpickr + recurrence toggle)
-│   ├── ExpenseForm.svelte      # Add-expense form (Dashboard-only; flatpickr, Space selector, OCR, CSV import, recurrence)
+│   ├── ExpenseForm.svelte      # Add-expense form (ExpenseView overview mode only; flatpickr, Space selector, OCR, CSV import, recurrence)
 │   ├── ExpenseItem.svelte      # Single expense/income row (contributor pill, recurrence badge, currency conversion)
 │   ├── Header.svelte           # Top bar — Personal/Hub switcher, notifications, currency switcher (no hamburger)
 │   ├── ImportModal.svelte      # Import result feedback modal
@@ -73,14 +73,13 @@ src/
 │   ├── MemberBreakdown.svelte  # Per-Hub-member contribution chart (category-breakdown pattern)
 │   ├── MobileQuickAdd.svelte   # Quick-add modal (mobile), incl. Space selector, CSV import, OCR receipt import — the only mobile entry point for either income or expense
 │   ├── PieChart.svelte         # Category pie chart
-│   ├── RecurringUpcoming.svelte # Active/paused recurring transactions, filtered by a `type` ('income' | 'expense') prop — used on Dashboard (expense) and IncomeView (income)
-│   ├── Sidebar.svelte          # Left navigation (desktop only) — Dashboard, Income, Expense, Spaces, Summaries, Account
+│   ├── RecurringUpcoming.svelte # Active/paused recurring transactions, filtered by a `type` ('income' | 'expense') prop — used on ExpenseView (expense) and IncomeView (income)
+│   ├── Sidebar.svelte          # Left navigation (desktop only) — Expense, Income, Spaces, Summaries, AI
 │   ├── TopCategories.svelte    # Top expense categories list
 │   └── TrendChart.svelte       # Expense trend line chart
 └── views/
-    ├── Dashboard.svelte        # Expense-only overview (summary, budget, recurring, add-expense form, charts, recent, member breakdown) — income is never shown or added here
+    ├── ExpenseView.svelte      # Expense home — a mode dropdown (below the Header) switches between Overview (summary, budget, recurring, add-expense form, recent-10) and List (search/sort/filters, full list); charts, member breakdown, and summary cards are shared by both modes. Income never appears or is addable here
     ├── IncomeView.svelte       # Income list with search/sort, recurring income, add-income form, member breakdown
-    ├── ExpenseView.svelte      # Expense list with search/sort, filters (date range, amount range, category, contributor, recurring-only), pie chart, trend, member breakdown
     ├── SpacesView.svelte       # Manage Hubs — create, rename, delete, invite, rename/remove members
     ├── SummariesView.svelte    # Weekly AI-narrated summaries
     └── AccountView.svelte      # Profile, stats, export CSV, dark mode, password, budget goals, logout, categories, danger zone
@@ -214,7 +213,8 @@ Key state:
 - `_currentSpaceId` — the active Hub, or `null` for Personal; switching calls `switchSpace()` in `api.ts`, which re-fetches `_expense` and re-subscribes the Hub's Pusher channel
 - `_pendingInvites` — Hubs where the user has a pending invite, shown in the Header Notifications dropdown and refreshed through Pusher user-channel events
 - `_aiChatHistory` — AI conversation messages (in-memory only)
-- `_currentView` — current route view (dashboard | income | expense | spaces | summaries | account)
+- `_currentView` — current route view (expense | income | spaces | summaries | account | ai)
+- `_expenseMode` — sub-mode of the Expense view (overview | list), driven by a second URL path segment (`/expense` vs `/expense/list`)
 
 ### Auth & CSRF flow
 1. On mount, `App.svelte` calls `fetchCsrfToken()` → `GET /api/auth/csrf` → sets `sw_csrf` cookie + in-memory token.
@@ -226,7 +226,7 @@ Key state:
 
 Logout uses the shared confirmation dialog before clearing the local session.
 
-Transaction deletion only updates local state after the server confirms success. Expense loads use generation checks so stale polling/Pusher responses cannot restore a successfully deleted transaction. The dashboard balance is calculated as `income - expenses` and preserves negative values in its display.
+Transaction deletion only updates local state after the server confirms success. Expense loads use generation checks so stale polling/Pusher responses cannot restore a successfully deleted transaction.
 
 ### API endpoints
 
@@ -273,15 +273,15 @@ Transaction deletion only updates local state after the server confirms success.
 - **Transactions**: Add/edit/delete income and expense entries with category, date, currency, notes
 - **Spaces (Hubs)**: Share a ledger with other accounts. Each Hub is a separate MongoDB database (`useDb()`), invited by email with owner-approval-free accept/decline through Header Notifications, contributor nicknames shown on every row/export/chart, up to 3 Hubs app-wide. Deleting a Hub drops its database and transactions. Replaces the old free-text "family member" tag
 - **Recurring transactions**: Templates with daily/weekly/biweekly/monthly/yearly frequency, auto-generated by server scheduler, for both the personal ledger and every Hub
-- **Dashboard**: Expense-only overview — expense summary cards, pie chart, trend chart, budget overview, recurring expenses, add-expense form, recent expenses, per-member breakdown when a Hub is active. Income never appears here or is addable here; it lives entirely in IncomeView (its own summary cards, recurring income, add-income form, list, per-member breakdown)
+- **Expense home**: `ExpenseView` is the app's landing page, with a mode dropdown just below the Header switching between Overview (budget, recurring expenses, add-expense form, recent-10) and List (search/sort, robust filters, full list) — summary cards, pie/trend charts, and per-member breakdown are shared by both modes. URL reflects the mode: `/expense` (overview) vs `/expense/list`. Income never appears here or is addable here; it lives entirely in IncomeView (its own summary cards, recurring income, add-income form, list, per-member breakdown)
 - **AI assistant**: Chat with your financial data (can act on it via tool calls), receipt OCR (single + bulk, with an optional higher-accuracy "OCR Pro" mode)
 - **Weekly summaries**: Lazily-generated, cached, AI-narrated recap of income/expenses/net/top categories per week
 - **Budget goals**: Per-category spending targets with progress tracking
 - **Multi-currency**: Live exchange rates, per-transaction currency, unified display currency
-- **Import/Export**: CSV import (via ExpenseForm on Dashboard, IncomeForm on IncomeView, and MobileQuickAdd), CSV export in AccountView, AI bulk receipt OCR import (with Basic/Pro toggle) via ExpenseForm and MobileQuickAdd.
+- **Import/Export**: CSV import (via ExpenseForm on the Expense view's overview mode, IncomeForm on IncomeView, and MobileQuickAdd), CSV export in AccountView, AI bulk receipt OCR import (with Basic/Pro toggle) via ExpenseForm and MobileQuickAdd.
 - **Dark mode**: System-aware toggle with localStorage persistence
 - **Real-time sync**: Pusher WebSocket events (per-user and per-Hub channels) + 5-min polling fallback
-- **Mobile**: Responsive layout with bottom navigation bar (Dashboard, Expense, + Quick Add, Income, Account, AI) on mobile and sidebar on desktop (lg+). Bottom nav has a concave center cutout with a raised gradient Quick Add button. The AI button opens the AI chat panel as a modal. The hamburger menu is removed entirely — mobile uses the bottom nav exclusively. Header buttons are centered on mobile, right-aligned on desktop.
+- **Mobile**: Responsive layout with bottom navigation bar (Expense, Income, + Quick Add, Account, AI) on mobile and sidebar on desktop (lg+). Bottom nav has a concave center cutout with a raised gradient Quick Add button. The AI button opens the AI chat panel as a modal. The hamburger menu is removed entirely — mobile uses the bottom nav exclusively. Header buttons are centered on mobile, right-aligned on desktop.
 
 ### CI/CD
 - GitHub Actions CI runs on push/PR to `main` (`.github/workflows/ci.yml`)

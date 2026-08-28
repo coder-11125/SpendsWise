@@ -7,7 +7,7 @@
   import Sidebar from './components/Sidebar.svelte';
   import BottomNav from './components/BottomNav.svelte';
   import Header from './components/Header.svelte';
-  import Dashboard from './views/Dashboard.svelte';
+  import ExpenseView from './views/ExpenseView.svelte';
   import LoginView from './views/LoginView.svelte';
   import ConfirmModal from './components/ConfirmModal.svelte';
 
@@ -19,11 +19,10 @@
   let importResult = $state<any>(null);
   let deleteAllModalOpen = $state<boolean>(false);
 
-  // Views/modals beyond the dashboard are loaded on demand so the initial
-  // bundle only pays for what's shown on first paint. Each loader result is
-  // cached in its slot so re-opening/re-navigating doesn't re-fetch.
+  // Views/modals beyond the landing Expense view are loaded on demand so the
+  // initial bundle only pays for what's shown on first paint. Each loader
+  // result is cached in its slot so re-opening/re-navigating doesn't re-fetch.
   let IncomeView = $state<any>(null);
-  let ExpenseView = $state<any>(null);
   let AccountView = $state<any>(null);
   let SummariesView = $state<any>(null);
   let SpacesView = $state<any>(null);
@@ -36,7 +35,6 @@
 
   $effect(() => {
     if (view === 'income' && !IncomeView) import('./views/IncomeView.svelte').then(m => IncomeView = m.default);
-    else if (view === 'expense' && !ExpenseView) import('./views/ExpenseView.svelte').then(m => ExpenseView = m.default);
     else if (view === 'account' && !AccountView) import('./views/AccountView.svelte').then(m => AccountView = m.default);
     else if (view === 'summaries' && !SummariesView) import('./views/SummariesView.svelte').then(m => SummariesView = m.default);
     else if (view === 'spaces' && !SpacesView) import('./views/SpacesView.svelte').then(m => SpacesView = m.default);
@@ -84,7 +82,7 @@
     if (!getIsLoggedIn() && getCurrentView() !== 'login') {
       navigate('/login');
     } else if (getIsLoggedIn() && getCurrentView() === 'login') {
-      navigate('/dashboard');
+      navigate('/expense');
     }
   });
 
@@ -113,12 +111,10 @@
     {/if}
 
     <main class="flex-1 min-h-0 {view === 'ai' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto overflow-x-hidden custom-scrollbar p-4 lg:p-6 pb-20 lg:pb-6'}">
-      {#if view === 'dashboard'}
-        <Dashboard />
+      {#if view === 'expense'}
+        <ExpenseView />
       {:else if view === 'income' && IncomeView}
         <IncomeView />
-      {:else if view === 'expense' && ExpenseView}
-        <ExpenseView />
       {:else if view === 'account' && AccountView}
         <AccountView />
       {:else if view === 'summaries' && SummariesView}

@@ -11,7 +11,6 @@ let _spaces = $state<Space[]>([]);
 let _currentSpaceId = $state<string | null>(null);
 let _pendingInvites = $state<Space[]>([]);
 let _currentFilter = $state<string>('all');
-let _dashboardTrendRange = $state<string>('month');
 let _expenseTrendRange = $state<string>('month');
 let _budgetGoals = $state<Record<string, number>>(JSON.parse(localStorage.getItem('sw_budget_goals') || '{}'));
 let _currencyRates = $state<CurrencyRates>(JSON.parse(localStorage.getItem('sw_currency_rates') || '{}'));
@@ -151,7 +150,8 @@ export function removeCustomCategory(type: string, name: string): void {
   }
 }
 
-let _currentView = $state<string>('dashboard');
+let _currentView = $state<string>('expense');
+let _expenseMode = $state<'overview' | 'list'>('overview');
 let _pollInterval: any = null;
 let _pusher: any = null;
 
@@ -208,9 +208,6 @@ export function getCurrentSpace(): Space | null {
 
 export function getCurrentFilter() { return _currentFilter; }
 export function setCurrentFilter(v: string) { _currentFilter = v; }
-
-export function getDashboardTrendRange() { return _dashboardTrendRange; }
-export function setDashboardTrendRange(v: string) { _dashboardTrendRange = v; }
 
 export function getExpenseTrendRange() { return _expenseTrendRange; }
 export function setExpenseTrendRange(v: string) { _expenseTrendRange = v; }
@@ -281,7 +278,7 @@ export function setActiveAiChatMessages(messages: AiChatMessage[]): void {
 }
 
 // Pin the active conversation to a specific ledger (a Hub id, or null for
-// Personal). This is independent of the dashboard's current Hub selection —
+// Personal). This is independent of the app's current Hub selection —
 // each chat remembers which ledger it is talking about.
 export function setActiveAiChatSpaceId(spaceId: string | null): void {
   _activeAiChat = { ..._activeAiChat, spaceId };
@@ -378,47 +375,64 @@ export function stopPolling() {
   }
 }
 
-function pathToView(path: string) {
-  const route = path.replace(/^\//, '') || 'dashboard';
-  return ['dashboard', 'income', 'expense', 'account', 'ai', 'summaries', 'spaces', 'login'].includes(route) ? route : 'dashboard';
+const VALID_ROUTES = ['expense', 'income', 'account', 'ai', 'summaries', 'spaces', 'login'];
+
+// The "expense" route carries an optional second path segment selecting the
+// page's display mode: /expense (overview, default) or /expense/list.
+function parsePath(path: string): { view: string; mode: 'overview' | 'list' } {
+  const segments = path.replace(/^\//, '').split('/').filter(Boolean);
+  const route = segments[0] || 'expense';
+  const view = VALID_ROUTES.includes(route) ? route : 'expense';
+  const mode = view === 'expense' && segments[1] === 'list' ? 'list' : 'overview';
+  return { view, mode };
 }
 
 export function initRouter() {
   let p = window.location.pathname.replace(/\/+$/, '') || '/';
   if (p === '/' || p === '') {
-    history.replaceState({}, '', '/dashboard');
-    p = '/dashboard';
+    history.replaceState({}, '', '/expense');
+    p = '/expense';
   }
-  _currentView = pathToView(p);
+  const parsed = parsePath(p);
+  _currentView = parsed.view;
+  _expenseMode = parsed.mode;
   window.addEventListener('popstate', () => {
     let p = window.location.pathname.replace(/\/+$/, '') || '/';
-    const newView = pathToView(p);
-    if (!_isLoggedIn && newView !== 'login') {
+    const parsed = parsePath(p);
+    if (!_isLoggedIn && parsed.view !== 'login') {
       history.replaceState({}, '', '/login');
       _currentView = 'login';
-    } else if (_isLoggedIn && newView === 'login') {
-      history.replaceState({}, '', '/dashboard');
-      _currentView = 'dashboard';
+    } else if (_isLoggedIn && parsed.view === 'login') {
+      history.replaceState({}, '', '/expense');
+      _currentView = 'expense';
+      _expenseMode = 'overview';
     } else {
-      _currentView = newView;
+      _currentView = parsed.view;
+      _expenseMode = parsed.mode;
     }
   });
 }
 
 export function navigate(path: string) {
-  const target = pathToView(path);
-  if (!_isLoggedIn && target !== 'login') {
+  const parsed = parsePath(path);
+  if (!_isLoggedIn && parsed.view !== 'login') {
     history.pushState({}, '', '/login');
     _currentView = 'login';
-  } else if (_isLoggedIn && target === 'login') {
-    history.pushState({}, '', '/dashboard');
-    _currentView = 'dashboard';
+  } else if (_isLoggedIn && parsed.view === 'login') {
+    history.pushState({}, '', '/expense');
+    _currentView = 'expense';
+    _expenseMode = 'overview';
   } else {
     history.pushState({}, '', path);
-    _currentView = target;
+    _currentView = parsed.view;
+    _expenseMode = parsed.mode;
   }
 }
 
 export function getCurrentView() {
   return _currentView;
+}
+
+export function getExpenseMode() {
+  return _expenseMode;
 }

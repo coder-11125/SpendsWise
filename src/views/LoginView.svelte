@@ -21,7 +21,7 @@
     try {
       const data = tab === 'login' ? await login(email, password) : await register(email, password);
       await showApp(data.user.email, data.user.id);
-      navigate('/dashboard');
+      navigate('/expense');
     } catch (err) {
       error = err instanceof Error ? err.message : t('common.unknownError');
     } finally {

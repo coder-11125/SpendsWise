@@ -3,7 +3,7 @@
   import { t } from '../lib/i18n.svelte.js';
 
   let {
-    activeFilter = 'dashboard',
+    activeFilter = 'expense',
     onquickadd,
     onai,
   }: {
@@ -13,12 +13,11 @@
   } = $props();
 
   let navItems = $derived([
-    { filter: 'dashboard', icon: 'ph-chart-pie-slice', label: t('nav.dashboard') },
-    { filter: 'expense', icon: 'ph-trend-down', label: t('nav.expense') },
+    { filter: 'expense', icon: 'ph-chart-pie-slice', label: t('nav.expense') },
+    { filter: 'income', icon: 'ph-trend-up', label: t('nav.income') },
   ]);
 
   let rightItems = $derived([
-    { filter: 'income', icon: 'ph-trend-up', label: t('nav.income') },
     { filter: 'account', icon: 'ph-user', label: t('nav.account') },
   ]);
 

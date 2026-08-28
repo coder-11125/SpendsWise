@@ -547,7 +547,7 @@ export async function syncTimezone(): Promise<void> {
 
 // spaceId selects the ledger the AI reads and edits. null/undefined means the
 // user's personal ledger. It is passed explicitly by the AI panel so the chat
-// can target a Hub independently of the dashboard's current selection.
+// can target a Hub independently of the app's current Hub selection.
 export async function sendAiMessage(message: string, history: any[], spaceId?: string | null): Promise<any> {
   const res = await apiFetch('/ai/chat', {
     method: 'POST',
