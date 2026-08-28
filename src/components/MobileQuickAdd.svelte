@@ -6,7 +6,7 @@
   import { compressImageToDataUrl } from '../lib/utils.js';
   import { t } from '../lib/i18n.svelte.js';
   import { getFlatpickrLocale } from '../lib/flatpickrLocale.js';
-  import type { Expense } from '../types.js';
+  import type { Expense, Recurrence } from '../types.js';
   import CategorySelect from './CategorySelect.svelte';
   import BulkImportModal from './BulkImportModal.svelte';
 
@@ -25,6 +25,13 @@
 
   let dateInput = $state<HTMLInputElement | null>(null);
   let fp = $state<any>(null);
+
+  // Recurrence
+  let isRecurring = $state(false);
+  let recurrenceFrequency = $state<'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'>('monthly');
+  let recurrenceEndDate = $state('');
+  let endDateInput = $state<HTMLInputElement | null>(null);
+  let endDateFp = $state<any>(null);
 
   let spaces = $derived(getSpaces());
   let currentSpaceId = $derived(getCurrentSpaceId());
@@ -68,6 +75,34 @@
     }
   });
 
+  // The end-date input only exists in the DOM while isRecurring is true, so
+  // flatpickr must attach/detach on that transition rather than once on mount.
+  $effect(() => {
+    if (!endDateInput) return;
+    let cancelled = false;
+    let instance: any = null;
+    import('flatpickr').then(async (mod) => {
+      if (cancelled) return;
+      instance = mod.default(endDateInput as HTMLElement, {
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'd/m/Y',
+        locale: await getFlatpickrLocale(mod.default),
+        disableMobile: true,
+        defaultDate: recurrenceEndDate || undefined,
+        onChange: (selectedDates: Date[]) => {
+          recurrenceEndDate = selectedDates[0] ? selectedDates[0].toISOString().split('T')[0] : '';
+        }
+      });
+      endDateFp = instance;
+    });
+    return () => {
+      cancelled = true;
+      instance?.destroy();
+      endDateFp = null;
+    };
+  });
+
   async function handleSubmit(e: Event) {
     e.preventDefault();
     error = '';
@@ -77,7 +112,16 @@
     }
     loading = true;
     try {
-      const entry = await saveTransaction({ type, amount, category, date, name, note });
+      let recurrence: Recurrence | null = null;
+      if (isRecurring) {
+        recurrence = {
+          frequency: recurrenceFrequency,
+          nextDueDate: date,
+          endDate: recurrenceEndDate || null,
+          isActive: true,
+        };
+      }
+      const entry = await saveTransaction({ type, amount, category, date, name, note, recurrence });
       if (entry) {
         addExpenseItem(entry);
         type = 'expense';
@@ -86,6 +130,9 @@
         date = new Date().toISOString().split('T')[0];
         name = '';
         note = '';
+        isRecurring = false;
+        recurrenceFrequency = 'monthly';
+        recurrenceEndDate = '';
         onclose?.();
       } else {
         error = t('form.failedSave');
@@ -289,6 +336,45 @@
             placeholder={t('form.optionalNote')}
             class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
+        </div>
+
+        <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-repeat text-blue-600"></i>
+              <span class="text-sm font-medium text-slate-700">{t('form.recurringTransaction')}</span>
+            </div>
+            <button type="button" onclick={() => isRecurring = !isRecurring} aria-label={t('form.recurringTransaction')}
+              class="relative w-10 h-5 rounded-full transition-colors {isRecurring ? 'bg-blue-600' : 'bg-slate-300'}">
+              <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform {isRecurring ? 'translate-x-5' : ''}"></div>
+            </button>
+          </div>
+          {#if isRecurring}
+            <div class="space-y-3 mt-3 animate-fade-in">
+              <div>
+                <label for="mq-frequency" class="block text-xs font-medium text-slate-500 mb-1">{t('form.frequency')}</label>
+                <div class="flex gap-1">
+                  {#each [
+                    { v: 'daily' as const, l: t('freq.daily') },
+                    { v: 'weekly' as const, l: t('freq.weekly') },
+                    { v: 'biweekly' as const, l: t('freq.biweekly') },
+                    { v: 'monthly' as const, l: t('freq.monthly') },
+                    { v: 'yearly' as const, l: t('freq.yearly') }
+                  ] as opt}
+                    <button type="button" onclick={() => recurrenceFrequency = opt.v}
+                      class="px-2.5 py-1 text-xs rounded-md font-medium transition-colors {recurrenceFrequency === opt.v ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'}">
+                      {opt.l}
+                    </button>
+                  {/each}
+                </div>
+              </div>
+              <div>
+                <label for="mq-enddate" class="block text-xs font-medium text-slate-500 mb-1">{t('form.endDateOptional')}</label>
+                <input id="mq-enddate" bind:this={endDateInput} type="text" bind:value={recurrenceEndDate} placeholder={t('form.noEndDate')}
+                  class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md text-slate-800 text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
+              </div>
+            </div>
+          {/if}
         </div>
 
         {#if error}

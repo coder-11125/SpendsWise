@@ -70,7 +70,7 @@ src/
 │   ├── IncomeForm.svelte       # Add-income form (IncomeView-only; flatpickr, Space selector, CSV import, recurrence)
 │   ├── LoadingSpinner.svelte   # Loading indicator
 │   ├── MemberBreakdown.svelte  # Per-Hub-member contribution chart (category-breakdown pattern)
-│   ├── MobileQuickAdd.svelte   # Quick-add modal, incl. Space selector, CSV import, OCR receipt import, for either income or expense — opened from the mobile bottom nav or, on desktop, the Expense view's "Add Transaction" button (via an `open-quick-add` window event App.svelte listens for)
+│   ├── MobileQuickAdd.svelte   # Quick-add modal, incl. Space selector, recurrence toggle, CSV import, OCR receipt import, for either income or expense — opened from the mobile bottom nav or, on desktop, the Expense view's "Add Transaction" button (via an `open-quick-add` window event App.svelte listens for)
 │   ├── PieChart.svelte         # Category pie chart
 │   ├── RecurringUpcoming.svelte # Active/paused recurring transactions, filtered by a `type` ('income' | 'expense') prop — used on ExpenseView (expense) and IncomeView (income)
 │   ├── Sidebar.svelte          # Left navigation (desktop only) — Expense, Income, Spaces, Summaries, AI
