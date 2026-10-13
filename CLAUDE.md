@@ -68,7 +68,7 @@ src/
 │   ├── DeleteAllModal.svelte   # Confirm delete-all-transactions
 │   ├── EditModal.svelte        # Edit expense modal (flatpickr + recurrence toggle)
 │   ├── ExpenseItem.svelte      # Single expense/income row (contributor pill, recurrence badge, currency conversion)
-│   ├── Header.svelte           # Top bar — "Add Entry" button (desktop only, opens Quick Add), Personal/Hub switcher, notifications, currency switcher (no hamburger)
+│   ├── Header.svelte           # Top bar — "Add Entry" button (desktop only, opens Quick Add), Personal/Hub switcher, notifications (Hub invites + an unseen weekly summary, with a combined badge), currency switcher (no hamburger). On phones both dropdowns render full-width under the header; they close on view change
 │   ├── ImportModal.svelte      # Import result feedback modal
 │   ├── ListFiltersDropdown.svelte # Consolidated Filters dropdown (search, sort, date/amount range, category, contributor, recurring-only) with flatpickr date inputs — `bind:filters`, used in list mode by ExpenseView and IncomeView
 │   ├── LoadingSpinner.svelte   # Loading indicator
@@ -87,7 +87,7 @@ src/
     ├── SummariesView.svelte    # Weekly AI-narrated summaries
     ├── LandingView.svelte      # Public marketing page at `/` — nav with in-page section links, hero with real desktop + phone screenshots, How it works (3 steps), three alternating feature spotlights (Hubs, AI, weekly summaries), essentials grid, Security & data strip, FAQ accordion, closing CTA, multi-column footer. Shows "Open dashboard" instead of sign-in buttons when signed in. Lazy-loaded; has its own scroll container because `body` is `overflow-hidden`. All copy is in the `landing.*` i18n keys — keep claims accurate to what the app actually does
     ├── LoginView.svelte        # Sign in / register (email + Google); logo links back to `/`
-    └── AccountView.svelte      # Profile, stats, export CSV, dark mode, password, budget goals, logout, categories, danger zone
+    └── AccountView.svelte      # Profile, a mobile-only Weekly summaries link (Summaries has no bottom-nav slot), stats, export CSV, dark mode, password, budget goals, logout, categories, danger zone
 ```
 
 ### Backend architecture
@@ -217,6 +217,7 @@ Key state:
 - `_spaces` — Hubs the user is an active member of
 - `_currentSpaceId` — the active Hub, or `null` for Personal; switching calls `switchSpace()` in `api.ts`, which re-fetches `_expense` and re-subscribes the Hub's Pusher channel
 - `_pendingInvites` — Hubs where the user has a pending invite, shown in the Header Notifications dropdown and refreshed through Pusher user-channel events
+- `_latestSummary` — newest weekly summary, fetched after login (`refreshLatestSummary()` in `api.ts`, which also lazily generates it) and on every Summaries load; it appears in Header Notifications until seen. `hasUnseenSummary()` / `markSummarySeen()` track the last seen week per account in `localStorage` (`sw_seen_summary_week:<email>`); opening Summaries marks it seen
 - `_aiChatHistory` — AI conversation messages (in-memory only)
 - `_currentView` — current route view (landing | login | expense | income | spaces | summaries | account | ai)
 - `_viewMode` — sub-mode of the Expense and Income views (overview | list), driven by the URL's mode segment (`/dashboard/expense` vs `/dashboard/expense/list`, `/dashboard/income` vs `/dashboard/income/list`); read with `getViewMode()`
@@ -280,7 +281,7 @@ Transaction deletion only updates local state after the server confirms success.
 - **Landing page**: `/` is a public, minimal marketing page (`LandingView`); the app itself starts at `/dashboard/expense`.
 - **Expense home**: `ExpenseView` is the app's home page. Its top row holds a mode dropdown (Overview/List); there is no add-expense form or button on the page itself — adding a transaction goes through the Header's "Add Entry" button on desktop or the bottom nav's Quick Add on mobile, both opening the same Quick Add modal. Overview shows summary cards, budget, recurring expenses, pie/trend charts, per-member breakdown, and a recent-10 glance list. List drops all of that down to just a single consolidated Filters dropdown (search, sort, date/amount range, category, contributor, recurring-only) plus the matching expense entries. URL reflects the mode: `/dashboard/expense` (overview) vs `/dashboard/expense/list`. Income never appears here; it is viewed in IncomeView (an Overview/All Incomes page laid out like this one: summary cards, recurring income, charts, member breakdown, recent-10, and a filterable list at `/dashboard/income/list`) and, like expenses, added only via Quick Add (Header "Add Entry" on desktop, bottom nav on mobile)
 - **AI assistant**: Chat with your financial data (can act on it via tool calls)
-- **Weekly summaries**: Lazily-generated, cached, AI-narrated recap of income/expenses/net/top categories per week
+- **Weekly summaries**: Lazily-generated, cached, AI-narrated recap of income/expenses/net/top categories per week. A new one is surfaced in Header Notifications after login; on mobile, Summaries is reached from that notification or the Account page link
 - **Budget goals**: Per-category spending targets with progress tracking
 - **Multi-currency**: Live exchange rates, per-transaction currency, unified display currency
 - **Import/Export**: CSV import (via MobileQuickAdd — opened from the mobile bottom nav or the Header's "Add Entry" button on desktop), CSV export in AccountView.

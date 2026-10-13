@@ -2,7 +2,7 @@ import { API_BASE, RATE_CACHE_DURATION, RATE_FETCH_COOLDOWN } from './constants.
 import {
   getCsrfToken, setCsrfToken, getIsLoggedIn,
   setExpense, getCurrentSpaceId, setCurrentSpaceId, getCurrentSpace,
-  getSpaces, setSpaces, getPendingInvites, setPendingInvites,
+  getSpaces, setSpaces, getPendingInvites, setPendingInvites, setLatestSummary,
   subscribeSpaceChannel, unsubscribeSpaceChannel,
   setEmail, setUserId, setIsLoggedIn, startPolling, stopPolling, initPusher,
   getCurrentCurrency, setCurrentCurrency,
@@ -156,6 +156,7 @@ export async function logout(): Promise<void> {
   setCurrentSpaceId(null);
   setSpaces([]);
   setPendingInvites([]);
+  setLatestSummary(null);
   try {
     await fetch(`${API_BASE}/auth/logout`, {
       method: 'POST',
@@ -182,6 +183,7 @@ export async function deleteAccount(): Promise<void> {
   setCurrentSpaceId(null);
   setSpaces([]);
   setPendingInvites([]);
+  setLatestSummary(null);
   sessionStorage.setItem('sw_logged_out', 'true');
   navigate('/login');
 }
@@ -203,8 +205,11 @@ export async function checkSession(): Promise<boolean> {
       loadExpenses();
       fetchSpaces();
       fetchPendingInvites();
+      // Summaries are keyed to the user's timezone, so sync it first.
       if (data.timezone !== Intl.DateTimeFormat().resolvedOptions().timeZone) {
-        syncTimezone();
+        syncTimezone().then(refreshLatestSummary);
+      } else {
+        refreshLatestSummary();
       }
       return true;
     }
@@ -227,7 +232,7 @@ export async function showApp(email: string, userId?: string): Promise<void> {
   fetchSpaces();
   fetchPendingInvites();
   startPolling();
-  syncTimezone();
+  syncTimezone().then(refreshLatestSummary);
 }
 
 export async function saveTransaction({ type, amount, category, date, name = '', note = '', recurrence }: Partial<Expense>): Promise<Expense | null> {
@@ -529,7 +534,19 @@ export async function fetchAiQuota(): Promise<{ weeklyRemaining: number }> {
 
 export async function fetchSummaries(): Promise<{ summaries: WeeklySummary[] }> {
   const res = await apiFetch(`/summaries?lang=${getLocale()}`);
-  return handleJsonResponse(res, 'Failed to fetch summaries');
+  const data = await handleJsonResponse(res, 'Failed to fetch summaries');
+  setLatestSummary(data.summaries?.[0] ?? null);
+  return data;
+}
+
+// Fetching summaries also lazily generates last week's, so this both creates
+// and surfaces a new summary for the Header notifications. Best-effort.
+export async function refreshLatestSummary(): Promise<void> {
+  try {
+    await fetchSummaries();
+  } catch {
+    // Notifications just won't show a summary this time.
+  }
 }
 
 export async function syncTimezone(): Promise<void> {

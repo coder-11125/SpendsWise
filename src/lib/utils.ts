@@ -105,3 +105,11 @@ export async function calculateExpenseTrendData(expenseItems: Expense[], range: 
 
   return { points, total, average: activeBuckets > 0 ? total / activeBuckets : 0, periodLabel: getTrendPeriodLabel(range) };
 }
+
+/** "Oct 5 – Oct 11, 2026" for a Monday..Sunday summary week (YYYY-MM-DD keys). */
+export function formatWeekRange(start: string, end: string): string {
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+  const s = new Date(`${start}T00:00:00`);
+  const e = new Date(`${end}T00:00:00`);
+  return `${s.toLocaleDateString(getLocale(), opts)} – ${e.toLocaleDateString(getLocale(), { ...opts, year: 'numeric' })}`;
+}

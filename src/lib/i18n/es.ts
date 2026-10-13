@@ -42,6 +42,9 @@ export const es: Dict = {
   "header.noNotifications": "Sin notificaciones nuevas.",
   "header.inviteCount": { one: "{count} invitación", other: "{count} invitaciones" },
   "header.invitedYouTo": "{name} te invitó a {space}.",
+  "header.summaryReady": "Tu resumen semanal está listo",
+  "header.summaryWeek": { one: "{range} · {count} transacción", other: "{range} · {count} transacciones" },
+  "header.viewSummary": "Ver resumen",
   "header.accept": "Aceptar",
   "header.decline": "Rechazar",
   "header.exchangeRatesUnavailable": "Tipos de cambio no disponibles: los montos no se convierten",
@@ -206,6 +209,8 @@ export const es: Dict = {
   "trend.avg": "Prom. {value}",
 
   // ---- Account ----
+  "account.weeklySummaries": "Resúmenes semanales",
+  "account.weeklySummariesDesc": "Un resumen de cada semana completada",
   "account.stats": "Estadísticas de la cuenta",
   "account.totalIncome": "Ingresos totales",
   "account.totalExpenses": "Gastos totales",

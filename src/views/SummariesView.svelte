@@ -1,8 +1,9 @@
 <script lang="ts">
   import { fetchSummaries } from '../lib/api.js';
-  import { getCurrentCurrency } from '../lib/state.svelte.js';
+  import { getCurrentCurrency, markSummarySeen } from '../lib/state.svelte.js';
   import { formatMoney } from '../lib/currency.js';
-  import { t, getLocale } from '../lib/i18n.svelte.js';
+  import { t } from '../lib/i18n.svelte.js';
+  import { formatWeekRange } from '../lib/utils.js';
   import PieChart from '../components/PieChart.svelte';
   import type { WeeklySummary } from '../types.js';
 
@@ -14,17 +15,10 @@
     loading = true;
     error = '';
     fetchSummaries()
-      .then((res) => { summaries = res.summaries ?? []; })
+      .then((res) => { summaries = res.summaries ?? []; markSummarySeen(); })
       .catch((err) => { error = err.message || t('summaries.loadFailed'); })
       .finally(() => { loading = false; });
   });
-
-  function formatRange(start: string, end: string): string {
-    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-    const s = new Date(`${start}T00:00:00`);
-    const e = new Date(`${end}T00:00:00`);
-    return `${s.toLocaleDateString(getLocale(), opts)} – ${e.toLocaleDateString(getLocale(), { ...opts, year: 'numeric' })}`;
-  }
 
   function weekOverWeekChange(summary: WeeklySummary): { pct: string; up: boolean } | null {
     const prev = summary.stats.previousWeekExpense;
@@ -75,7 +69,7 @@
       {@const change = weekOverWeekChange(summary)}
       <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 space-y-5">
         <div class="flex items-start justify-between flex-wrap gap-2">
-          <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100">{formatRange(summary.weekStartDate, summary.weekEndDate)}</h2>
+          <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100">{formatWeekRange(summary.weekStartDate, summary.weekEndDate)}</h2>
           {#if change}
             <span class="text-xs font-medium px-2 py-1 rounded-full {change.up ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/20' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20'}">
               <i class="ph {change.up ? 'ph-trend-up' : 'ph-trend-down'} mr-1"></i>

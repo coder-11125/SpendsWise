@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { getExpense, getCurrentCurrency, setExpense, getBudgetGoals, setBudgetGoals, getCustomCategories, removeCustomCategory, getHiddenCategories, hideCategory, unhideCategory, getCurrentSpaceId, getSpaces, getUserId, confirmDialog } from '../lib/state.svelte.js';
+  import { getExpense, getCurrentCurrency, setExpense, getBudgetGoals, setBudgetGoals, getCustomCategories, removeCustomCategory, getHiddenCategories, hideCategory, unhideCategory, getCurrentSpaceId, getSpaces, getUserId, confirmDialog, hasUnseenSummary, navigate, dashboardPath } from '../lib/state.svelte.js';
   import { getCurrencySymbol, formatMoney } from '../lib/currency.js';
   import { t, getLocale } from '../lib/i18n.svelte.js';
   import { changePassword, deleteAllExpenses, deleteAccount, getProfile, deleteSpace, logout, uploadBulkExpenses, loadExpenses } from '../lib/api.js';
@@ -253,6 +253,22 @@
       </div>
     </div>
   </div>
+
+  <!-- Summaries has no bottom-nav slot on mobile; the desktop sidebar links it instead. -->
+  <button onclick={() => navigate(dashboardPath('summaries'))}
+    class="lg:hidden w-full flex items-center gap-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer">
+    <span class="relative grid place-items-center w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 flex-shrink-0">
+      <i class="ph ph-newspaper text-xl"></i>
+      {#if hasUnseenSummary()}
+        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-800"></span>
+      {/if}
+    </span>
+    <span class="min-w-0 flex-1">
+      <span class="block font-semibold text-slate-800 dark:text-slate-100">{t('account.weeklySummaries')}</span>
+      <span class="block text-sm text-slate-500 dark:text-slate-400">{t('account.weeklySummariesDesc')}</span>
+    </span>
+    <i class="ph ph-caret-right text-slate-400"></i>
+  </button>
 
   <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
     <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">{t('account.stats')}</h3>

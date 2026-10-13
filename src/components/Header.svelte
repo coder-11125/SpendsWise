@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { getCurrentCurrency, getIsLoggedIn, getRatesAreLive, getSpaces, getCurrentSpaceId, getPendingInvites, navigate, dashboardPath } from '../lib/state.svelte.js';
+  import { getCurrentCurrency, getIsLoggedIn, getRatesAreLive, getSpaces, getCurrentSpaceId, getPendingInvites, getLatestSummary, hasUnseenSummary, markSummarySeen, navigate, dashboardPath } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
   import { fetchPendingInvites, respondToInvite, switchSpace } from '../lib/api.js';
   import { t } from '../lib/i18n.svelte.js';
+  import { formatWeekRange } from '../lib/utils.js';
 
   let { onopencurrency, view = '' } = $props();
 
@@ -19,6 +20,22 @@
   let responding = $state('');
   let notificationError = $state('');
   let pendingInvites = $derived(getPendingInvites());
+  let latestSummary = $derived(getLatestSummary());
+  let showSummary = $derived(hasUnseenSummary());
+  let notificationCount = $derived(pendingInvites.length + (showSummary ? 1 : 0));
+
+  // Dropdowns belong to the view they were opened on.
+  $effect(() => {
+    view;
+    switcherOpen = false;
+    notificationsOpen = false;
+  });
+
+  function openSummary() {
+    notificationsOpen = false;
+    markSummarySeen();
+    navigate(dashboardPath('summaries'));
+  }
 
   async function selectSpace(spaceId: string | null) {
     switcherOpen = false;
@@ -71,7 +88,7 @@
 
         {#if switcherOpen}
           <div role="presentation" class="fixed inset-0 z-40" onclick={() => switcherOpen = false}></div>
-          <div class="absolute right-0 mt-2 w-56 max-w-[calc(100vw_-_1.5rem)] max-h-[min(20rem,60vh)] overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
+          <div class="fixed inset-x-3 top-[4.5rem] sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-56 max-h-[min(20rem,60vh)] overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 py-1 animate-fade-in">
             <button
               onclick={() => selectSpace(null)}
               class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors {!currentSpaceId ? 'text-blue-600 font-medium' : 'text-slate-700 dark:text-slate-200'}"
@@ -107,14 +124,14 @@
         >
           <i class="ph ph-bell text-lg"></i>
           <span class="hidden sm:inline">{t('header.notifications')}</span>
-          {#if pendingInvites.length > 0}
-            <span class="min-w-5 h-5 px-1 flex items-center justify-center rounded-full bg-rose-500 text-white text-xs font-bold">{pendingInvites.length}</span>
+          {#if notificationCount > 0}
+            <span class="min-w-5 h-5 px-1 flex items-center justify-center rounded-full bg-rose-500 text-white text-xs font-bold">{notificationCount}</span>
           {/if}
         </button>
 
         {#if notificationsOpen}
           <div role="presentation" class="fixed inset-0 z-40" onclick={() => notificationsOpen = false}></div>
-          <div class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] max-h-[min(24rem,70vh)] overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 p-3 animate-fade-in">
+          <div class="fixed inset-x-3 top-[4.5rem] sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-80 max-h-[min(24rem,70vh)] overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 p-3 animate-fade-in">
             <div class="flex items-center justify-between mb-2">
               <h2 class="font-semibold text-slate-800 dark:text-slate-100">{t('header.notifications')}</h2>
               {#if pendingInvites.length > 0}
@@ -124,10 +141,22 @@
             {#if notificationError}
               <p class="text-xs text-rose-600 bg-rose-50 dark:bg-rose-900/30 px-2 py-1.5 rounded mb-2">{notificationError}</p>
             {/if}
-            {#if pendingInvites.length === 0}
+            {#if notificationCount === 0}
               <p class="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">{t('header.noNotifications')}</p>
             {:else}
               <ul class="space-y-2">
+                {#if showSummary && latestSummary}
+                  <li class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                    <div class="flex items-start gap-2 mb-2">
+                      <i class="ph ph-newspaper text-blue-600 mt-0.5"></i>
+                      <div class="min-w-0">
+                        <p class="text-sm font-medium text-slate-800 dark:text-slate-100">{t('header.summaryReady')}</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">{t('header.summaryWeek', { range: formatWeekRange(latestSummary.weekStartDate, latestSummary.weekEndDate), count: latestSummary.stats.transactionCount })}</p>
+                      </div>
+                    </div>
+                    <button onclick={openSummary} class="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors">{t('header.viewSummary')}</button>
+                  </li>
+                {/if}
                 {#each pendingInvites as space (space.id)}
                   <li class="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
                     <p class="text-sm text-slate-700 dark:text-slate-200 mb-2">
