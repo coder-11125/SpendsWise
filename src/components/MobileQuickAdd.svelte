@@ -1,14 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { saveTransaction, switchSpace, uploadBulkExpenses, loadExpenses, parseReceiptsBulk } from '../lib/api.js';
+  import { saveTransaction, switchSpace, uploadBulkExpenses, loadExpenses } from '../lib/api.js';
   import { addExpenseItem, getCurrentCurrency, getSpaces, getCurrentSpaceId } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
-  import { compressImageToDataUrl } from '../lib/utils.js';
   import { t } from '../lib/i18n.svelte.js';
   import { getFlatpickrLocale } from '../lib/flatpickrLocale.js';
-  import type { Expense, Recurrence } from '../types.js';
+  import type { Recurrence } from '../types.js';
   import CategorySelect from './CategorySelect.svelte';
-  import BulkImportModal from './BulkImportModal.svelte';
 
   let { show, onclose } = $props();
 
@@ -41,14 +39,6 @@
   let csvImporting = $state(false);
   let csvResult = $state<{ success: boolean; message: string } | null>(null);
   let csvFileInput = $state<HTMLInputElement | null>(null);
-
-  // Receipt / OCR import
-  let receiptProcessing = $state(false);
-  let receiptProgress = $state('');
-  let parsedReceipts = $state<any[]>([]);
-  let showBulkModal = $state(false);
-  let ocrPro = $state(false);
-  let receiptInput = $state<HTMLInputElement | null>(null);
 
   async function handleSpaceChange(e: Event) {
     const value = (e.target as HTMLSelectElement).value;
@@ -179,62 +169,6 @@
       csvImporting = false;
       target.value = '';
     }
-  }
-
-  // Receipt import handlers
-  async function handleBulkReceiptUpload(e: Event) {
-    const target = e.target as HTMLInputElement;
-    const files = Array.from(target.files ?? []);
-    if (!files.length) return;
-    receiptProcessing = true;
-    receiptProgress = t('form.compressingReceipts', { count: files.length });
-    const dataUrls = await Promise.all(
-      files.map((f: File) => compressImageToDataUrl(f, 1920, 0.7))
-    );
-    receiptProgress = t('form.processingReceipts', { count: dataUrls.length });
-    try {
-      const data = await parseReceiptsBulk(dataUrls, ocrPro);
-      receiptProgress = '';
-      const flat: any[] = [];
-      const today = new Date().toISOString().split('T')[0];
-      for (const r of data.results ?? []) {
-        if (r.error) continue;
-        for (const item of r.items ?? []) {
-          flat.push({
-            type: item.type || 'expense',
-            amount: item.amount,
-            category: item.category || 'Other',
-            date: r.date || today,
-            name: item.name || '',
-            note: item.note || '',
-          });
-        }
-      }
-      if (flat.length > 0) {
-        parsedReceipts = flat;
-        showBulkModal = true;
-      } else {
-        alert(t('form.noReceiptData'));
-      }
-    } catch (err) {
-      console.error('Bulk receipt parse failed:', err);
-      receiptProgress = '';
-      alert(t('form.receiptFailed'));
-    }
-    receiptProcessing = false;
-    target.value = '';
-  }
-
-  function handleBulkSave(saved: any[]) {
-    showBulkModal = false;
-    parsedReceipts = [];
-    for (const item of saved) {
-      addExpenseItem(item as Expense);
-    }
-  }
-
-  function triggerReceiptUpload() {
-    receiptInput?.click();
   }
 </script>
 
@@ -403,37 +337,6 @@
           <h3 class="text-sm font-semibold text-slate-700">{t('form.import')}</h3>
         </div>
 
-        <!-- Receipt / OCR import -->
-        <div class="mb-3">
-          <button onclick={triggerReceiptUpload} disabled={receiptProcessing} class="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors cursor-pointer disabled:text-slate-300">
-            <i class="ph ph-camera"></i>
-            <span>{receiptProcessing ? t('form.importing') : t('form.importReceipts')}</span>
-          </button>
-          <div class="flex gap-2 mt-2">
-            <label class="flex-1 flex flex-col gap-0.5 cursor-pointer border rounded-lg px-3 py-2 transition-colors {!ocrPro ? 'border-blue-300 bg-blue-50' : 'border-slate-200'}">
-              <span class="flex items-center gap-1.5">
-                <input type="radio" name="ocrMode" checked={!ocrPro} onchange={() => ocrPro = false} class="text-blue-600 focus:ring-blue-500" />
-                <span class="text-xs font-medium text-slate-700">{t('form.basicOcr', { count: 3 })}</span>
-              </span>
-              <span class="text-[11px] text-slate-500 leading-snug">{t('form.basicOcrDesc')}</span>
-            </label>
-            <label class="flex-1 flex flex-col gap-0.5 cursor-pointer border rounded-lg px-3 py-2 transition-colors {ocrPro ? 'border-blue-300 bg-blue-50' : 'border-slate-200'}">
-              <span class="flex items-center gap-1.5">
-                <input type="radio" name="ocrMode" checked={ocrPro} onchange={() => ocrPro = true} class="text-blue-600 focus:ring-blue-500" />
-                <span class="text-xs font-medium text-slate-700">{t('form.proOcr', { count: 6 })}</span>
-              </span>
-              <span class="text-[11px] text-slate-500 leading-snug">{t('form.proOcrDesc')}</span>
-            </label>
-          </div>
-          <input bind:this={receiptInput} type="file" accept="image/*" multiple class="hidden" onchange={handleBulkReceiptUpload} />
-          {#if receiptProgress}
-            <div class="flex items-center gap-2 text-sm text-slate-500 mt-2">
-              <i class="ph ph-circle-notch animate-spin"></i>
-              <span>{receiptProgress}</span>
-            </div>
-          {/if}
-        </div>
-
         <!-- CSV import -->
         <div>
           <button onclick={triggerCsvImport} disabled={csvImporting} class="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors cursor-pointer disabled:text-slate-300">
@@ -467,10 +370,3 @@
     </div>
   </div>
 {/if}
-
-<BulkImportModal
-  show={showBulkModal}
-  results={parsedReceipts}
-  onclose={() => { showBulkModal = false; parsedReceipts = []; }}
-  onsave={handleBulkSave}
-/>

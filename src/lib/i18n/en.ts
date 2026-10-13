@@ -228,17 +228,8 @@ export const en: Dict = {
   "form.add": "Add {type}",
   "form.quickAdd": "Quick Add",
   "form.importing": "Importing...",
-  "form.importReceipts": "Import Receipts",
-  "form.basicOcr": "Basic OCR ({count} credits)",
-  "form.basicOcrDesc": "Good OCR quality at a low quota cost",
-  "form.proOcr": "OCR Pro ({count} credits)",
-  "form.proOcrDesc": "Extreme OCR capabilities. Use sparingly for messy, handwritten receipts in low light",
   "form.importCsv": "Import CSV",
   "form.importingCsv": "Importing CSV...",
-  "form.compressingReceipts": "Compressing {count} receipt(s)...",
-  "form.processingReceipts": "Processing {count} receipt(s)...",
-  "form.noReceiptData": "Could not extract data from any of the receipts.",
-  "form.receiptFailed": "Failed to process receipts. Please try again.",
   "form.csvEmpty": "CSV file is empty or has no data rows.",
   "form.csvImported": "Successfully imported {count} item(s).",
   "form.csvImportFailed": "Failed to import CSV.",
@@ -314,15 +305,6 @@ export const en: Dict = {
   "edit.saveChanges": "Save Changes",
 
   // ---- Bulk import modal ----
-  "bulk.importReceipts": "Import Receipts",
-  "bulk.closeModal": "Close modal",
-  "bulk.optional": "Optional",
-  "bulk.done": "Done",
-  "bulk.remove": "Remove",
-  "bulk.edit": "Edit",
-  "bulk.delete": "Delete",
-  "bulk.noItems": "No items to import",
-  "bulk.itemCount": { one: "{count} item", other: "{count} items" },
 
   // ---- Category select ----
   "category.newCategoryPlaceholder": "New category name",

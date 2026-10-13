@@ -105,31 +105,3 @@ export async function calculateExpenseTrendData(expenseItems: Expense[], range: 
 
   return { points, total, average: activeBuckets > 0 ? total / activeBuckets : 0, periodLabel: getTrendPeriodLabel(range) };
 }
-
-export function compressImageToDataUrl(file: File, maxPx: number, quality: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onerror = reject;
-      img.onload = () => {
-        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        } else {
-          reject(new Error('Could not get canvas context'));
-        }
-      };
-      if (e.target?.result) {
-        img.src = e.target.result as string;
-      }
-    };
-    reader.readAsDataURL(file);
-  });
-}
