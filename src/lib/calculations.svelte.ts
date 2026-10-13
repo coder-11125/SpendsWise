@@ -37,8 +37,8 @@ export async function calculateExpenseSummary(expense: Expense[], currency: stri
   return { total, count, average: count > 0 ? total / count : 0 };
 }
 
-export async function calculateExpenseByCategory(expense: Expense[], currency: string): Promise<{ data: CategoryData[]; total: number }> {
-  const expenseItems = expense.filter(t => t.type === 'expense');
+export async function calculateExpenseByCategory(expense: Expense[], currency: string, type: 'expense' | 'income' = 'expense'): Promise<{ data: CategoryData[]; total: number }> {
+  const expenseItems = expense.filter(t => t.type === type);
   await warmConversionRates(expenseItems.map(item => item.currency), currency);
   const categoryTotals: Record<string, number> = {};
   for (const item of expenseItems) {

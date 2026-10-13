@@ -87,6 +87,20 @@ describe("calculateExpenseByCategory", () => {
     expect(byName["Food & Dining"].percentage).toBeCloseTo(60);
     expect(byName["Transportation"].percentage).toBeCloseTo(40);
   });
+
+  it("groups income instead when asked for the income type", async () => {
+    const items = [
+      expense({ type: "income", amount: 300, category: "Salary" }),
+      expense({ type: "income", amount: 100, category: "Freelance" }),
+      expense({ type: "expense", amount: 999, category: "Food & Dining" }), // excluded
+    ];
+    const result = await calculateExpenseByCategory(items, "USD", "income");
+    expect(result.total).toBe(400);
+    expect(result.data).toHaveLength(2);
+    const byName = Object.fromEntries(result.data.map((d) => [d.category, d]));
+    expect(byName["Salary"].percentage).toBeCloseTo(75);
+    expect(byName["Freelance"].percentage).toBeCloseTo(25);
+  });
 });
 
 describe("calculateMemberBreakdown", () => {

@@ -12,6 +12,7 @@ let _currentSpaceId = $state<string | null>(null);
 let _pendingInvites = $state<Space[]>([]);
 let _currentFilter = $state<string>('all');
 let _expenseTrendRange = $state<string>('month');
+let _incomeTrendRange = $state<string>('month');
 let _budgetGoals = $state<Record<string, number>>(JSON.parse(localStorage.getItem('sw_budget_goals') || '{}'));
 let _currencyRates = $state<CurrencyRates>(JSON.parse(localStorage.getItem('sw_currency_rates') || '{}'));
 let _lastRateFetch = $state<number>(parseInt(localStorage.getItem('sw_last_rate_fetch') || '0', 10));
@@ -151,7 +152,7 @@ export function removeCustomCategory(type: string, name: string): void {
 }
 
 let _currentView = $state<string>('expense');
-let _expenseMode = $state<'overview' | 'list'>('overview');
+let _viewMode = $state<'overview' | 'list'>('overview');
 let _pollInterval: any = null;
 let _pusher: any = null;
 
@@ -211,6 +212,9 @@ export function setCurrentFilter(v: string) { _currentFilter = v; }
 
 export function getExpenseTrendRange() { return _expenseTrendRange; }
 export function setExpenseTrendRange(v: string) { _expenseTrendRange = v; }
+
+export function getIncomeTrendRange() { return _incomeTrendRange; }
+export function setIncomeTrendRange(v: string) { _incomeTrendRange = v; }
 
 export function getBudgetGoals() { return _budgetGoals; }
 export function setBudgetGoals(v: Record<string, number>) {
@@ -377,13 +381,14 @@ export function stopPolling() {
 
 const VALID_ROUTES = ['expense', 'income', 'account', 'ai', 'summaries', 'spaces', 'login'];
 
-// The "expense" route carries an optional second path segment selecting the
-// page's display mode: /expense (overview, default) or /expense/list.
+// The "expense" and "income" routes carry an optional second path segment
+// selecting the page's display mode: /expense (overview, default) or
+// /expense/list, and likewise /income or /income/list.
 function parsePath(path: string): { view: string; mode: 'overview' | 'list' } {
   const segments = path.replace(/^\//, '').split('/').filter(Boolean);
   const route = segments[0] || 'expense';
   const view = VALID_ROUTES.includes(route) ? route : 'expense';
-  const mode = view === 'expense' && segments[1] === 'list' ? 'list' : 'overview';
+  const mode = (view === 'expense' || view === 'income') && segments[1] === 'list' ? 'list' : 'overview';
   return { view, mode };
 }
 
@@ -395,7 +400,7 @@ export function initRouter() {
   }
   const parsed = parsePath(p);
   _currentView = parsed.view;
-  _expenseMode = parsed.mode;
+  _viewMode = parsed.mode;
   window.addEventListener('popstate', () => {
     let p = window.location.pathname.replace(/\/+$/, '') || '/';
     const parsed = parsePath(p);
@@ -405,10 +410,10 @@ export function initRouter() {
     } else if (_isLoggedIn && parsed.view === 'login') {
       history.replaceState({}, '', '/expense');
       _currentView = 'expense';
-      _expenseMode = 'overview';
+      _viewMode = 'overview';
     } else {
       _currentView = parsed.view;
-      _expenseMode = parsed.mode;
+      _viewMode = parsed.mode;
     }
   });
 }
@@ -421,11 +426,11 @@ export function navigate(path: string) {
   } else if (_isLoggedIn && parsed.view === 'login') {
     history.pushState({}, '', '/expense');
     _currentView = 'expense';
-    _expenseMode = 'overview';
+    _viewMode = 'overview';
   } else {
     history.pushState({}, '', path);
     _currentView = parsed.view;
-    _expenseMode = parsed.mode;
+    _viewMode = parsed.mode;
   }
 }
 
@@ -433,6 +438,6 @@ export function getCurrentView() {
   return _currentView;
 }
 
-export function getExpenseMode() {
-  return _expenseMode;
+export function getViewMode() {
+  return _viewMode;
 }

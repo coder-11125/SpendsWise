@@ -4,7 +4,7 @@
   import { t } from '../lib/i18n.svelte.js';
   import type { TrendPoint } from '../types.js';
 
-  let { points = [], total = 0, average = 0, periodLabel = '', currency = 'USD', range = undefined, onRangeChange = undefined } = $props<{
+  let { points = [], total = 0, average = 0, periodLabel = '', currency = 'USD', range = undefined, onRangeChange = undefined, variant = 'expense' } = $props<{
     points?: TrendPoint[];
     total?: number;
     average?: number;
@@ -12,6 +12,7 @@
     currency?: string;
     range?: string;
     onRangeChange?: (r: string) => void;
+    variant?: 'expense' | 'income';
   }>();
 
   const rangeOptions = $derived([{v:'day',l:t('trend.day')},{v:'week',l:t('trend.week')},{v:'month',l:t('trend.month')},{v:'all',l:t('trend.all')}]);
@@ -53,7 +54,7 @@
   <div class="flex items-center justify-between mb-4">
     <div class="flex items-center gap-2">
       <i class="ph ph-chart-line-up text-blue-600"></i>
-      <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('charts.trend')}</h2>
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{variant === 'income' ? t('charts.incomeTrend') : t('charts.trend')}</h2>
     </div>
     {#if onRangeChange}
       <div class="flex gap-1">
@@ -72,6 +73,6 @@
   {/if}
   <canvas bind:this={canvasEl} class="w-full" style="height: 260px"></canvas>
   {#if isEmpty}
-    <p class="text-center text-slate-400 dark:text-slate-500 text-sm mt-2">{t('charts.noExpenseDataFor', { period: periodLabel || t('charts.thisPeriod') })}</p>
+    <p class="text-center text-slate-400 dark:text-slate-500 text-sm mt-2">{t(variant === 'income' ? 'charts.noIncomeDataFor' : 'charts.noExpenseDataFor', { period: periodLabel || t('charts.thisPeriod') })}</p>
   {/if}
 </div>

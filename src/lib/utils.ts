@@ -44,12 +44,12 @@ export function getTrendPeriodLabel(range: string): string {
   }
 }
 
-export async function calculateExpenseTrendData(expenseItems: Expense[], range: string, currentCurrency: string): Promise<TrendData> {
+export async function calculateExpenseTrendData(expenseItems: Expense[], range: string, currentCurrency: string, type: 'expense' | 'income' = 'expense'): Promise<TrendData> {
   const { warmConversionRates, convertToDisplayCurrencySync } = await import('./currency.js');
   const today = startOfDay(new Date());
 
   const items = expenseItems
-    .filter(item => item.type === 'expense')
+    .filter(item => item.type === type)
     .map(item => ({ ...item, parsedDate: parseLocalExpenseDate(item.date) }))
     .filter((item): item is typeof item & { parsedDate: Date } => item.parsedDate !== null);
 

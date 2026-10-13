@@ -51,8 +51,9 @@ src/
 │   ├── state.svelte.ts         # Reactive state (runes-based getters/setters), incl. active Space context
 │   ├── api.ts                  # API wrapper + all endpoint functions (context-aware for Spaces)
 │   ├── currency.ts             # Currency formatting/conversion + live rate fetching
-│   ├── calculations.svelte.ts  # Async summary calculations (income, expense, category, member breakdown)
-│   ├── utils.ts                # Date helpers, trend data
+│   ├── calculations.svelte.ts  # Async summary calculations (income, expense, category — `calculateExpenseByCategory` takes an optional `'income'` type — and member breakdown)
+│   ├── utils.ts                # Date helpers, trend data (`calculateExpenseTrendData` takes an optional `'income'` type)
+│   ├── listFilters.ts          # Pure list search/sort/filter logic (`applyListFilters`, `countActiveFilters`) shared by ExpenseView and IncomeView list modes
 │   ├── charts.ts               # Canvas pie chart + trend chart renderers
 │   └── constants.ts            # Static data (currencies, colors, categoryIcons)
 ├── components/
@@ -66,17 +67,19 @@ src/
 │   ├── ExpenseItem.svelte      # Single expense/income row (contributor pill, recurrence badge, currency conversion)
 │   ├── Header.svelte           # Top bar — "Add Entry" button (desktop only, opens Quick Add), Personal/Hub switcher, notifications, currency switcher (no hamburger)
 │   ├── ImportModal.svelte      # Import result feedback modal
+│   ├── ListFiltersDropdown.svelte # Consolidated Filters dropdown (search, sort, date/amount range, category, contributor, recurring-only) with flatpickr date inputs — `bind:filters`, used in list mode by ExpenseView and IncomeView
 │   ├── LoadingSpinner.svelte   # Loading indicator
 │   ├── MemberBreakdown.svelte  # Per-Hub-member contribution chart (category-breakdown pattern)
 │   ├── MobileQuickAdd.svelte   # Quick-add modal, incl. Space selector, recurrence toggle, CSV import, for either income or expense — opened from the mobile bottom nav's center button or, on desktop, the Header's "Add Entry" button (via an `open-quick-add` window event App.svelte listens for)
-│   ├── PieChart.svelte         # Category pie chart
+│   ├── ModeDropdown.svelte     # Overview / List mode switcher dropdown shared by ExpenseView and IncomeView
+│   ├── PieChart.svelte         # Category pie chart (`variant` prop: 'expense' | 'income' picks the title/empty text)
 │   ├── RecurringUpcoming.svelte # Active/paused recurring transactions, filtered by a `type` ('income' | 'expense') prop — used on ExpenseView (expense) and IncomeView (income)
 │   ├── Sidebar.svelte          # Left navigation (desktop only) — Expense, Income, Spaces, Summaries, AI
 │   ├── TopCategories.svelte    # Top expense categories list
-│   └── TrendChart.svelte       # Expense trend line chart
+│   └── TrendChart.svelte       # Trend line chart (`variant` prop: 'expense' | 'income')
 └── views/
     ├── ExpenseView.svelte      # Expense home — top row holds a mode dropdown (Overview/List) and, in List mode, a single consolidated Filters dropdown (search, sort, date/amount range, category, contributor, recurring-only). Overview shows summary cards, budget, recurring, charts, member breakdown, recent-10; List shows only the filter dropdown and the matching expense entries. Adding a transaction happens via the Header's "Add Entry" button (desktop) or the bottom nav's Quick Add (mobile), not on this page. Income never appears or is addable here
-    ├── IncomeView.svelte       # Income list with search/sort, recurring income, member breakdown
+    ├── IncomeView.svelte       # Income home, mirroring ExpenseView — top row holds a mode dropdown (Overview/All Incomes) and, in All Incomes mode, the shared Filters dropdown. Overview shows summary cards, recurring income, income pie/top-categories, income trend, member breakdown, recent-10; All Incomes shows only the filter dropdown and the matching income entries. Adding income happens via Quick Add, not on this page
     ├── SpacesView.svelte       # Manage Hubs — create, rename, delete, invite, rename/remove members
     ├── SummariesView.svelte    # Weekly AI-narrated summaries
     └── AccountView.svelte      # Profile, stats, export CSV, dark mode, password, budget goals, logout, categories, danger zone
@@ -211,7 +214,8 @@ Key state:
 - `_pendingInvites` — Hubs where the user has a pending invite, shown in the Header Notifications dropdown and refreshed through Pusher user-channel events
 - `_aiChatHistory` — AI conversation messages (in-memory only)
 - `_currentView` — current route view (expense | income | spaces | summaries | account | ai)
-- `_expenseMode` — sub-mode of the Expense view (overview | list), driven by a second URL path segment (`/expense` vs `/expense/list`)
+- `_viewMode` — sub-mode of the Expense and Income views (overview | list), driven by a second URL path segment (`/expense` vs `/expense/list`, `/income` vs `/income/list`); read with `getViewMode()`
+- `_expenseTrendRange` / `_incomeTrendRange` — selected trend-chart range for each view
 
 ### Auth & CSRF flow
 1. On mount, `App.svelte` calls `fetchCsrfToken()` → `GET /api/auth/csrf` → sets `sw_csrf` cookie + in-memory token.
@@ -268,7 +272,7 @@ Transaction deletion only updates local state after the server confirms success.
 - **Transactions**: Add/edit/delete income and expense entries with category, date, currency, notes
 - **Spaces (Hubs)**: Share a ledger with other accounts. Each Hub is a separate MongoDB database (`useDb()`), invited by email with owner-approval-free accept/decline through Header Notifications, contributor nicknames shown on every row/export/chart, up to 3 Hubs app-wide. Deleting a Hub drops its database and transactions. Replaces the old free-text "family member" tag
 - **Recurring transactions**: Templates with daily/weekly/biweekly/monthly/yearly frequency, auto-generated by server scheduler, for both the personal ledger and every Hub
-- **Expense home**: `ExpenseView` is the app's landing page. Its top row holds a mode dropdown (Overview/List); there is no add-expense form or button on the page itself — adding a transaction goes through the Header's "Add Entry" button on desktop or the bottom nav's Quick Add on mobile, both opening the same Quick Add modal. Overview shows summary cards, budget, recurring expenses, pie/trend charts, per-member breakdown, and a recent-10 glance list. List drops all of that down to just a single consolidated Filters dropdown (search, sort, date/amount range, category, contributor, recurring-only) plus the matching expense entries. URL reflects the mode: `/expense` (overview) vs `/expense/list`. Income never appears here; it is viewed in IncomeView (summary cards, recurring income, list, per-member breakdown) and, like expenses, added only via Quick Add (Header "Add Entry" on desktop, bottom nav on mobile)
+- **Expense home**: `ExpenseView` is the app's landing page. Its top row holds a mode dropdown (Overview/List); there is no add-expense form or button on the page itself — adding a transaction goes through the Header's "Add Entry" button on desktop or the bottom nav's Quick Add on mobile, both opening the same Quick Add modal. Overview shows summary cards, budget, recurring expenses, pie/trend charts, per-member breakdown, and a recent-10 glance list. List drops all of that down to just a single consolidated Filters dropdown (search, sort, date/amount range, category, contributor, recurring-only) plus the matching expense entries. URL reflects the mode: `/expense` (overview) vs `/expense/list`. Income never appears here; it is viewed in IncomeView (an Overview/All Incomes page laid out like this one: summary cards, recurring income, charts, member breakdown, recent-10, and a filterable list at `/income/list`) and, like expenses, added only via Quick Add (Header "Add Entry" on desktop, bottom nav on mobile)
 - **AI assistant**: Chat with your financial data (can act on it via tool calls)
 - **Weekly summaries**: Lazily-generated, cached, AI-narrated recap of income/expenses/net/top categories per week
 - **Budget goals**: Per-category spending targets with progress tracking
@@ -294,7 +298,7 @@ Transaction deletion only updates local state after the server confirms success.
   ```
 
 ### Testing
-- Client: `src/**/*.test.ts` — pure logic (currency, calculations, utils, charts). jsdom environment, svelte plugin for `.svelte.ts` runes.
+- Client: `src/**/*.test.ts` — pure logic (currency, calculations, utils, charts, listFilters, view-mode routing). jsdom environment, svelte plugin for `.svelte.ts` runes.
 - Server: `server/test/**/*.test.ts` — route/middleware integration with Supertest against `mongodb-memory-server` (pinned to 6.0.19; 7.x needs AVX2). Runs in one worker so exactly one in-memory mongod is alive; the binary caches in `server/.mongodb-binaries` (git-ignored).
 - `server/test/app.test.ts` boots the full Express app and MUST stay alphabetically first: it sets `MONGODB_URI` to the in-memory server before the first `src/config.ts` import, and config freezes env at import. Never add static imports of `src/**` modules to that file — import them dynamically inside hooks/tests.
 

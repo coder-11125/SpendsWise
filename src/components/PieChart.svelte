@@ -4,10 +4,11 @@
   import { t } from '../lib/i18n.svelte.js';
   import type { CategoryData } from '../types.js';
 
-  let { categoryData = [], total = 0, currency = 'USD' } = $props<{
+  let { categoryData = [], total = 0, currency = 'USD', variant = 'expense' } = $props<{
     categoryData?: CategoryData[];
     total?: number;
     currency?: string;
+    variant?: 'expense' | 'income';
   }>();
 
   let canvasEl = $state<HTMLCanvasElement | null>(null);
@@ -34,7 +35,7 @@
 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 animate-fade-in">
   <div class="flex items-center gap-2 mb-4">
     <i class="ph ph-chart-pie-slice text-blue-600"></i>
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('charts.expenseBreakdown')}</h2>
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{variant === 'income' ? t('charts.incomeBreakdown') : t('charts.expenseBreakdown')}</h2>
   </div>
   <div class="flex flex-col items-center">
     <canvas bind:this={canvasEl} class="max-w-full"></canvas>
@@ -43,7 +44,7 @@
         {@html legendHtml}
       </div>
     {:else if categoryData.length === 0}
-      <p class="text-slate-400 dark:text-slate-500 text-sm mt-4">{t('charts.noExpenseData')}</p>
+      <p class="text-slate-400 dark:text-slate-500 text-sm mt-4">{variant === 'income' ? t('charts.noIncomeData') : t('charts.noExpenseData')}</p>
     {/if}
   </div>
 </div>

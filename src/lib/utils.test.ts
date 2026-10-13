@@ -80,6 +80,18 @@ describe("calculateExpenseTrendData", () => {
     expect(trend.average).toBe(75);
   });
 
+  it("buckets income instead when asked for the income type", async () => {
+    const items = [
+      expense({ amount: 200, category: "Salary", date: "2026-01-10", type: "income" }),
+      expense({ amount: 100, category: "Salary", date: "2026-02-15", type: "income" }),
+      expense({ amount: 999, category: "Food", date: "2026-02-16" }), // expense, excluded
+    ];
+    const trend = await calculateExpenseTrendData(items, "all", "USD", "income");
+    expect(trend.points.map((p) => p.key)).toEqual(["2026-01", "2026-02"]);
+    expect(trend.total).toBe(300);
+    expect(trend.average).toBe(150);
+  });
+
   it("returns an empty series when there are no expenses", async () => {
     const trend = await calculateExpenseTrendData([], "all", "USD");
     expect(trend.points).toHaveLength(0);
