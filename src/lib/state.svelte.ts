@@ -151,7 +151,7 @@ export function removeCustomCategory(type: string, name: string): void {
   }
 }
 
-let _currentView = $state<string>('expense');
+let _currentView = $state<string>('landing');
 let _viewMode = $state<'overview' | 'list'>('overview');
 let _pollInterval: any = null;
 let _pusher: any = null;
@@ -379,59 +379,79 @@ export function stopPolling() {
   }
 }
 
-const VALID_ROUTES = ['expense', 'income', 'account', 'ai', 'summaries', 'spaces', 'login'];
+// The authenticated app lives under /dashboard/<view>; "/" is the public
+// landing page and "/login" the auth screen. The "expense" and "income" views
+// carry an optional third segment selecting their display mode:
+// /dashboard/expense (overview, default) or /dashboard/expense/list.
+// Pre-/dashboard links (/expense, /income/list, ...) are rewritten in place.
+const APP_VIEWS = ['expense', 'income', 'account', 'ai', 'summaries', 'spaces'];
 
-// The "expense" and "income" routes carry an optional second path segment
-// selecting the page's display mode: /expense (overview, default) or
-// /expense/list, and likewise /income or /income/list.
-function parsePath(path: string): { view: string; mode: 'overview' | 'list' } {
-  const segments = path.replace(/^\//, '').split('/').filter(Boolean);
-  const route = segments[0] || 'expense';
-  const view = VALID_ROUTES.includes(route) ? route : 'expense';
-  const mode = (view === 'expense' || view === 'income') && segments[1] === 'list' ? 'list' : 'overview';
-  return { view, mode };
+type ParsedRoute = { view: string; mode: 'overview' | 'list'; path: string };
+
+export function isAppView(view: string): boolean {
+  return APP_VIEWS.includes(view);
+}
+
+/** Canonical URL for an app view, e.g. dashboardPath('income', 'list') → /dashboard/income/list. */
+export function dashboardPath(view: string = 'expense', mode: 'overview' | 'list' = 'overview'): string {
+  const v = isAppView(view) ? view : 'expense';
+  const hasModes = v === 'expense' || v === 'income';
+  return `/dashboard/${v}${hasModes && mode === 'list' ? '/list' : ''}`;
+}
+
+export function parsePath(path: string): ParsedRoute {
+  const segments = path.split('?')[0].split('/').filter(Boolean);
+  const [first, ...rest] = segments;
+
+  if (!first) return { view: 'landing', mode: 'overview', path: '/' };
+  if (first === 'login') return { view: 'login', mode: 'overview', path: '/login' };
+
+  // /dashboard/<view>/<mode>, or a legacy /<view>/<mode> link.
+  const appSegments = first === 'dashboard' ? rest : isAppView(first) ? segments : null;
+  if (!appSegments) return { view: 'landing', mode: 'overview', path: '/' };
+
+  const view = isAppView(appSegments[0]) ? appSegments[0] : 'expense';
+  const mode = (view === 'expense' || view === 'income') && appSegments[1] === 'list' ? 'list' : 'overview';
+  return { view, mode, path: dashboardPath(view, mode) };
+}
+
+// Public pages are open to everyone; app views require a session, and a
+// signed-in user hitting /login is sent on to the dashboard.
+function guard(route: ParsedRoute): ParsedRoute {
+  if (!_isLoggedIn && isAppView(route.view)) return { view: 'login', mode: 'overview', path: '/login' };
+  if (_isLoggedIn && route.view === 'login') return { view: 'expense', mode: 'overview', path: dashboardPath() };
+  return route;
+}
+
+function applyRoute(route: ParsedRoute) {
+  _currentView = route.view;
+  _viewMode = route.mode;
+}
+
+function currentLocation(): string {
+  return window.location.pathname.replace(/\/+$/, '') || '/';
 }
 
 export function initRouter() {
-  let p = window.location.pathname.replace(/\/+$/, '') || '/';
-  if (p === '/' || p === '') {
-    history.replaceState({}, '', '/expense');
-    p = '/expense';
-  }
-  const parsed = parsePath(p);
-  _currentView = parsed.view;
-  _viewMode = parsed.mode;
+  // Auth isn't known yet here, so only canonicalize the URL; App.svelte runs
+  // navigate() once checkSession() settles to apply the auth guard.
+  const route = parsePath(currentLocation());
+  if (route.path !== currentLocation()) history.replaceState({}, '', route.path);
+  applyRoute(route);
   window.addEventListener('popstate', () => {
-    let p = window.location.pathname.replace(/\/+$/, '') || '/';
-    const parsed = parsePath(p);
-    if (!_isLoggedIn && parsed.view !== 'login') {
-      history.replaceState({}, '', '/login');
-      _currentView = 'login';
-    } else if (_isLoggedIn && parsed.view === 'login') {
-      history.replaceState({}, '', '/expense');
-      _currentView = 'expense';
-      _viewMode = 'overview';
-    } else {
-      _currentView = parsed.view;
-      _viewMode = parsed.mode;
-    }
+    const route = guard(parsePath(currentLocation()));
+    if (route.path !== currentLocation()) history.replaceState({}, '', route.path);
+    applyRoute(route);
   });
 }
 
-export function navigate(path: string) {
-  const parsed = parsePath(path);
-  if (!_isLoggedIn && parsed.view !== 'login') {
-    history.pushState({}, '', '/login');
-    _currentView = 'login';
-  } else if (_isLoggedIn && parsed.view === 'login') {
-    history.pushState({}, '', '/expense');
-    _currentView = 'expense';
-    _viewMode = 'overview';
-  } else {
-    history.pushState({}, '', path);
-    _currentView = parsed.view;
-    _viewMode = parsed.mode;
+export function navigate(path: string, { replace = false }: { replace?: boolean } = {}) {
+  const route = guard(parsePath(path));
+  if (route.path !== currentLocation()) {
+    if (replace) history.replaceState({}, '', route.path);
+    else history.pushState({}, '', route.path);
   }
+  applyRoute(route);
 }
 
 export function getCurrentView() {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fetchCsrfToken, checkSession } from './lib/api.js';
-  import { getIsLoggedIn, getAuthChecking, setAuthChecking, getCurrentCurrency, initRouter, getCurrentView, navigate } from './lib/state.svelte.js';
+  import { getIsLoggedIn, getAuthChecking, setAuthChecking, initRouter, getCurrentView, navigate, dashboardPath } from './lib/state.svelte.js';
   import { getCurrencySymbol } from './lib/currency.js';
   import type { Expense } from './types.js';
   import Sidebar from './components/Sidebar.svelte';
@@ -22,6 +22,7 @@
   // Views/modals beyond the landing Expense view are loaded on demand so the
   // initial bundle only pays for what's shown on first paint. Each loader
   // result is cached in its slot so re-opening/re-navigating doesn't re-fetch.
+  let LandingView = $state<any>(null);
   let IncomeView = $state<any>(null);
   let AccountView = $state<any>(null);
   let SummariesView = $state<any>(null);
@@ -34,7 +35,8 @@
   let MobileQuickAdd = $state<any>(null);
 
   $effect(() => {
-    if (view === 'income' && !IncomeView) import('./views/IncomeView.svelte').then(m => IncomeView = m.default);
+    if (view === 'landing' && !LandingView) import('./views/LandingView.svelte').then(m => LandingView = m.default);
+    else if (view === 'income' && !IncomeView) import('./views/IncomeView.svelte').then(m => IncomeView = m.default);
     else if (view === 'account' && !AccountView) import('./views/AccountView.svelte').then(m => AccountView = m.default);
     else if (view === 'summaries' && !SummariesView) import('./views/SummariesView.svelte').then(m => SummariesView = m.default);
     else if (view === 'spaces' && !SpacesView) import('./views/SpacesView.svelte').then(m => SpacesView = m.default);
@@ -49,7 +51,7 @@
   $effect(() => { if (showAiChat && !AiChatPanel) import('./components/AiChatPanel.svelte').then(m => AiChatPanel = m.default); });
 
   function handleNavigate(filter: string) {
-    navigate('/' + filter);
+    navigate(dashboardPath(filter));
   }
 
   function toggleSidebarCollapsed() {
@@ -89,11 +91,9 @@
     initRouter();
     await Promise.allSettled([fetchCsrfToken(), checkSession()]);
     setAuthChecking(false);
-    if (!getIsLoggedIn() && getCurrentView() !== 'login') {
-      navigate('/login');
-    } else if (getIsLoggedIn() && getCurrentView() === 'login') {
-      navigate('/expense');
-    }
+    // Re-run the current URL through the router now that auth is known, so
+    // app views bounce to /login and /login bounces to the dashboard.
+    navigate(window.location.pathname, { replace: true });
   });
 
   let view = $derived(getCurrentView());
@@ -101,6 +101,12 @@
 
 {#if getAuthChecking()}
   <div class="h-screen flex items-center justify-center bg-white">
+    <i class="ph ph-circle-notch animate-spin text-3xl text-blue-500"></i>
+  </div>
+{:else if view === 'landing' && LandingView}
+  <LandingView />
+{:else if view === 'landing'}
+  <div class="h-screen flex items-center justify-center bg-white dark:bg-slate-950">
     <i class="ph ph-circle-notch animate-spin text-3xl text-blue-500"></i>
   </div>
 {:else if view === 'login'}
@@ -142,7 +148,7 @@
   </div>
 </div>
 
-{#if view !== 'login' && view !== 'ai'}
+{#if view !== 'login' && view !== 'landing' && view !== 'ai'}
   <BottomNav activeFilter={view} onquickadd={() => showMobileQuickAdd = true} onai={() => showAiChat = true} />
 {/if}
 {/if}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getCurrentCurrency, getIsLoggedIn, getRatesAreLive, getSpaces, getCurrentSpaceId, getPendingInvites, navigate } from '../lib/state.svelte.js';
+  import { getCurrentCurrency, getIsLoggedIn, getRatesAreLive, getSpaces, getCurrentSpaceId, getPendingInvites, navigate, dashboardPath } from '../lib/state.svelte.js';
   import { getCurrencySymbol } from '../lib/currency.js';
   import { fetchPendingInvites, respondToInvite, switchSpace } from '../lib/api.js';
   import { t } from '../lib/i18n.svelte.js';
@@ -90,7 +90,7 @@
             {/each}
             <div class="border-t border-slate-100 dark:border-slate-700 my-1"></div>
             <button
-              onclick={() => { switcherOpen = false; navigate('/spaces'); }}
+              onclick={() => { switcherOpen = false; navigate(dashboardPath('spaces')); }}
               class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
               <i class="ph ph-gear"></i>

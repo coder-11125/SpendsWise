@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { getExpense, getCurrentCurrency, removeExpenseItem, getIncomeTrendRange, setIncomeTrendRange, getCurrentSpaceId, getViewMode, navigate, confirmDialog } from '../lib/state.svelte.js';
+  import { getExpense, getCurrentCurrency, removeExpenseItem, getIncomeTrendRange, setIncomeTrendRange, getCurrentSpaceId, getViewMode, navigate, dashboardPath, confirmDialog } from '../lib/state.svelte.js';
   import { calculateIncomeSummary, calculateExpenseByCategory, calculateMemberBreakdown } from '../lib/calculations.svelte.js';
   import { calculateExpenseTrendData } from '../lib/utils.js';
   import { applyListFilters, countActiveFilters, defaultListFilters } from '../lib/listFilters.js';
@@ -39,7 +39,7 @@
   let activeFilterCount = $derived(countActiveFilters(filters));
 
   function selectMode(m: 'overview' | 'list') {
-    navigate(m === 'list' ? '/income/list' : '/income');
+    navigate(dashboardPath('income', m));
   }
 
   async function refresh() {

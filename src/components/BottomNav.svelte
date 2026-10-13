@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { navigate } from '../lib/state.svelte.js';
+  import { navigate, dashboardPath } from '../lib/state.svelte.js';
   import { t } from '../lib/i18n.svelte.js';
 
   let {
@@ -24,7 +24,7 @@
   let aiButton = $derived({ icon: 'ph-brain', label: t('nav.ai') });
 
   function handleNav(filter: string) {
-    navigate('/' + filter);
+    navigate(dashboardPath(filter));
   }
 </script>
 

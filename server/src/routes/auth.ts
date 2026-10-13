@@ -65,12 +65,12 @@ router.get(
   (req, res) => {
     const user = (req as any).user;
     signAndSetCookie(res, user._id.toString(), user.tokenVersion ?? 0);
-    res.redirect(config.frontendUrl);
+    res.redirect(`${config.frontendUrl}/dashboard/expense`);
   }
 );
 
 router.get("/google/failure", (_req, res) => {
-  res.redirect(`${config.frontendUrl}/?auth_error=google_failed`);
+  res.redirect(`${config.frontendUrl}/login?auth_error=google_failed`);
 });
 
 router.get("/csrf", (req, res) => {

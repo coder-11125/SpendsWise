@@ -6,6 +6,9 @@ A personal finance tracker built with Svelte 5, TypeScript, Express, and MongoDB
 
 ## Features
 
+### Landing Page & Routes
+The site root (`/`) is a minimal public landing page; the app itself lives under `/dashboard` (e.g. `/dashboard/expense`, `/dashboard/income/list`), with `/login` for sign-in. Old links like `/expense` redirect to their `/dashboard` equivalents.
+
 ### Dashboard
 A comprehensive overview featuring summary cards (total balance, income, expenses, net), an interactive category pie chart, a trend line chart showing spending patterns over time, budget progress bars with color-coded thresholds (green → amber → red), a list of upcoming recurring transactions, and your most recent transaction entries.
 

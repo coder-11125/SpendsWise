@@ -1,6 +1,6 @@
 <script lang="ts">
   import { login, register, showApp } from '../lib/api.js';
-  import { navigate } from '../lib/state.svelte.js';
+  import { navigate, dashboardPath } from '../lib/state.svelte.js';
   import { t } from '../lib/i18n.svelte.js';
   import LanguageSelect from '../components/LanguageSelect.svelte';
 
@@ -21,7 +21,7 @@
     try {
       const data = tab === 'login' ? await login(email, password) : await register(email, password);
       await showApp(data.user.email, data.user.id);
-      navigate('/expense');
+      navigate(dashboardPath());
     } catch (err) {
       error = err instanceof Error ? err.message : t('common.unknownError');
     } finally {
@@ -33,10 +33,10 @@
 <div class="min-h-screen bg-white flex items-center justify-center p-4">
   <div class="w-full max-w-md">
     <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-2">
+      <a href="/" onclick={(e) => { e.preventDefault(); navigate('/'); }} class="flex items-center gap-2">
         <h1 class="text-xl font-bold text-slate-800">SpendsWise</h1>
         <i class="ph ph-wallet text-2xl text-blue-600"></i>
-      </div>
+      </a>
       <div class="w-36">
         <LanguageSelect />
       </div>
