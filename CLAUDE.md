@@ -58,6 +58,7 @@ src/
 │   ├── charts.ts               # Canvas pie chart + trend chart renderers
 │   └── constants.ts            # Static data (currencies, colors, categoryIcons)
 ├── components/
+│   ├── landing/                # Illustrative, markup-drawn previews used only by LandingView spotlights: HubPreview, ChatPreview, SummaryPreview
 │   ├── AiChatPanel.svelte      # AI assistant slide-in panel (Groq-powered chat)
 │   ├── AuthModal.svelte        # Login/register modal
 │   ├── BottomNav.svelte        # Mobile bottom navigation bar with center Quick Add button and AI button
@@ -83,7 +84,7 @@ src/
     ├── IncomeView.svelte       # Income home, mirroring ExpenseView — top row holds a mode dropdown (Overview/All Incomes) and, in All Incomes mode, the shared Filters dropdown. Overview shows summary cards, recurring income, income pie/top-categories, income trend, member breakdown, recent-10; All Incomes shows only the filter dropdown and the matching income entries. Adding income happens via Quick Add, not on this page
     ├── SpacesView.svelte       # Manage Hubs — create, rename, delete, invite, rename/remove members
     ├── SummariesView.svelte    # Weekly AI-narrated summaries
-    ├── LandingView.svelte      # Public marketing page at `/` — nav, hero, markup-drawn product preview, feature grid, closing CTA; shows "Open dashboard" instead of sign-in buttons when signed in. Lazy-loaded; has its own scroll container because `body` is `overflow-hidden`
+    ├── LandingView.svelte      # Public marketing page at `/` — nav with in-page section links, hero + markup-drawn product preview, How it works (3 steps), three alternating feature spotlights (Hubs, AI, weekly summaries), essentials grid, Security & data strip, FAQ accordion, closing CTA, multi-column footer. Shows "Open dashboard" instead of sign-in buttons when signed in. Lazy-loaded; has its own scroll container because `body` is `overflow-hidden`. All copy is in the `landing.*` i18n keys — keep claims accurate to what the app actually does
     ├── LoginView.svelte        # Sign in / register (email + Google); logo links back to `/`
     └── AccountView.svelte      # Profile, stats, export CSV, dark mode, password, budget goals, logout, categories, danger zone
 ```

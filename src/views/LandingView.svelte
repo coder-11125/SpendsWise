@@ -2,19 +2,57 @@
   import { getIsLoggedIn, navigate, dashboardPath } from '../lib/state.svelte.js';
   import { formatMoney } from '../lib/currency.js';
   import { t, locales, getLocale, setLocale } from '../lib/i18n.svelte.js';
+  import HubPreview from '../components/landing/HubPreview.svelte';
+  import ChatPreview from '../components/landing/ChatPreview.svelte';
+  import SummaryPreview from '../components/landing/SummaryPreview.svelte';
 
   let isLoggedIn = $derived(getIsLoggedIn());
   let locale = $derived(getLocale());
   const year = new Date().getFullYear();
 
-  let features = $derived([
-    { icon: 'ph-arrows-down-up', title: t('landing.feature.tracking.title'), body: t('landing.feature.tracking.body') },
-    { icon: 'ph-users-three', title: t('landing.feature.hubs.title'), body: t('landing.feature.hubs.body') },
-    { icon: 'ph-repeat', title: t('landing.feature.recurring.title'), body: t('landing.feature.recurring.body') },
-    { icon: 'ph-sparkle', title: t('landing.feature.ai.title'), body: t('landing.feature.ai.body') },
-    { icon: 'ph-newspaper', title: t('landing.feature.summaries.title'), body: t('landing.feature.summaries.body') },
-    { icon: 'ph-globe-hemisphere-west', title: t('landing.feature.currency.title'), body: t('landing.feature.currency.body') },
+  let navLinks = $derived([
+    { id: 'how', label: t('landing.nav.how') },
+    { id: 'features', label: t('landing.nav.features') },
+    { id: 'security', label: t('landing.nav.security') },
+    { id: 'faq', label: t('landing.nav.faq') },
   ]);
+
+  let steps = $derived([
+    { n: '01', title: t('landing.how.1.title'), body: t('landing.how.1.body') },
+    { n: '02', title: t('landing.how.2.title'), body: t('landing.how.2.body') },
+    { n: '03', title: t('landing.how.3.title'), body: t('landing.how.3.body') },
+  ]);
+
+  // Each spotlight pairs copy with a markup-drawn preview, alternating sides.
+  let spotlights = $derived([
+    { key: 'hubs', icon: 'ph-users-three', preview: HubPreview },
+    { key: 'ai', icon: 'ph-sparkle', preview: ChatPreview },
+    { key: 'summaries', icon: 'ph-newspaper', preview: SummaryPreview },
+  ].map(sp => ({
+    ...sp,
+    eyebrow: t(`landing.spot.${sp.key}.eyebrow`),
+    title: t(`landing.spot.${sp.key}.title`),
+    body: t(`landing.spot.${sp.key}.body`),
+    points: [1, 2, 3].map(i => t(`landing.spot.${sp.key}.point${i}`)),
+  })));
+
+  let essentials = $derived([
+    { icon: 'ph-lightning', title: t('landing.feature.tracking.title'), body: t('landing.feature.tracking.body') },
+    { icon: 'ph-repeat', title: t('landing.feature.recurring.title'), body: t('landing.feature.recurring.body') },
+    { icon: 'ph-target', title: t('landing.feature.budgets.title'), body: t('landing.feature.budgets.body') },
+    { icon: 'ph-globe-hemisphere-west', title: t('landing.feature.currency.title'), body: t('landing.feature.currency.body') },
+    { icon: 'ph-arrows-clockwise', title: t('landing.feature.sync.title'), body: t('landing.feature.sync.body') },
+    { icon: 'ph-devices', title: t('landing.feature.devices.title'), body: t('landing.feature.devices.body') },
+  ]);
+
+  let security = $derived([
+    { icon: 'ph-cookie', title: t('landing.security.sessions.title'), body: t('landing.security.sessions.body') },
+    { icon: 'ph-lock-key', title: t('landing.security.passwords.title'), body: t('landing.security.passwords.body') },
+    { icon: 'ph-database', title: t('landing.security.hubs.title'), body: t('landing.security.hubs.body') },
+    { icon: 'ph-export', title: t('landing.security.portable.title'), body: t('landing.security.portable.body') },
+  ]);
+
+  let faqs = $derived([1, 2, 3, 4, 5, 6].map(i => ({ q: t(`landing.faq.${i}.q`), a: t(`landing.faq.${i}.a`) })));
 
   // Illustrative entries for the product preview card.
   let previewRows = $derived([
@@ -29,6 +67,12 @@
     e.preventDefault();
     navigate(path);
   }
+
+  // In-page section links scroll the landing container without touching the URL.
+  function jump(e: MouseEvent, id: string) {
+    e.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 </script>
 
 <div class="h-screen overflow-y-auto bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-blue-100 dark:selection:bg-blue-900/60">
@@ -41,8 +85,14 @@
         SpendsWise
       </a>
 
+      <div class="hidden md:flex items-center gap-7 text-sm text-slate-500 dark:text-slate-400">
+        {#each navLinks as l (l.id)}
+          <a href="#{l.id}" onclick={(e) => jump(e, l.id)} class="hover:text-slate-900 dark:hover:text-white transition-colors">{l.label}</a>
+        {/each}
+      </div>
+
       <div class="flex items-center gap-1 sm:gap-3">
-        <label class="hidden sm:flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+        <label class="hidden lg:flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
           <i class="ph ph-translate"></i>
           <select value={locale} aria-label={t('common.language')}
             onchange={(e) => setLocale((e.target as HTMLSelectElement).value as 'en' | 'es')}
@@ -164,19 +214,98 @@
       </div>
     </section>
 
-    <section class="mx-auto max-w-6xl px-4 sm:px-6 py-24 sm:py-32">
+    <section id="how" class="scroll-mt-20 mx-auto max-w-6xl px-4 sm:px-6 pt-24 sm:pt-32">
+      <div class="max-w-2xl">
+        <p class="text-sm font-medium text-blue-600">{t('landing.how.eyebrow')}</p>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight text-balance">{t('landing.how.title')}</h2>
+      </div>
+      <ol class="mt-12 grid gap-10 sm:grid-cols-3 sm:gap-8">
+        {#each steps as step (step.n)}
+          <li class="border-t border-slate-200 dark:border-slate-800 pt-6">
+            <span class="font-mono text-xs text-slate-400">{step.n}</span>
+            <h3 class="mt-3 font-medium">{step.title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{step.body}</p>
+          </li>
+        {/each}
+      </ol>
+    </section>
+
+    <section id="features" class="scroll-mt-20 mx-auto max-w-6xl px-4 sm:px-6 pt-24 sm:pt-32 space-y-24 sm:space-y-32">
+      {#each spotlights as sp, i (sp.key)}
+        <div class="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+          <div class={i % 2 === 1 ? 'lg:order-2' : ''}>
+            <p class="inline-flex items-center gap-2 text-sm font-medium text-blue-600">
+              <i class="ph {sp.icon}"></i>{sp.eyebrow}
+            </p>
+            <h2 class="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight text-balance">{sp.title}</h2>
+            <p class="mt-4 leading-relaxed text-slate-500 dark:text-slate-400">{sp.body}</p>
+            <ul class="mt-6 space-y-3">
+              {#each sp.points as point (point)}
+                <li class="flex items-start gap-3 text-sm">
+                  <i class="ph ph-check mt-0.5 text-blue-600"></i>
+                  <span class="text-slate-600 dark:text-slate-300">{point}</span>
+                </li>
+              {/each}
+            </ul>
+          </div>
+          <div class="{i % 2 === 1 ? 'lg:order-1' : ''} rounded-3xl bg-slate-50 dark:bg-slate-900/60 p-4 sm:p-10">
+            <sp.preview />
+          </div>
+        </div>
+      {/each}
+    </section>
+
+    <section class="mx-auto max-w-6xl px-4 sm:px-6 pt-24 sm:pt-32">
       <div class="max-w-2xl">
         <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight text-balance">{t('landing.featuresTitle')}</h2>
         <p class="mt-4 text-slate-500 dark:text-slate-400">{t('landing.featuresLede')}</p>
       </div>
 
       <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-px overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-200 dark:bg-slate-800">
-        {#each features as f (f.icon)}
+        {#each essentials as f (f.icon)}
           <div class="bg-white dark:bg-slate-950 p-7 sm:p-8">
             <i class="ph {f.icon} text-xl text-blue-600"></i>
             <h3 class="mt-4 font-medium">{f.title}</h3>
             <p class="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{f.body}</p>
           </div>
+        {/each}
+      </div>
+    </section>
+
+    <section id="security" class="scroll-mt-20 mt-24 sm:mt-32 border-y border-slate-100 dark:border-slate-900 bg-slate-50 dark:bg-slate-900/40">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-24 grid gap-12 lg:grid-cols-3">
+        <div>
+          <p class="inline-flex items-center gap-2 text-sm font-medium text-blue-600"><i class="ph ph-shield-check"></i>{t('landing.security.eyebrow')}</p>
+          <h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance">{t('landing.security.title')}</h2>
+          <p class="mt-4 leading-relaxed text-slate-500 dark:text-slate-400">{t('landing.security.lede')}</p>
+        </div>
+        <div class="lg:col-span-2 grid gap-8 sm:grid-cols-2">
+          {#each security as item (item.icon)}
+            <div class="flex gap-4">
+              <span class="grid place-items-center shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                <i class="ph {item.icon} text-lg"></i>
+              </span>
+              <div>
+                <h3 class="font-medium">{item.title}</h3>
+                <p class="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{item.body}</p>
+              </div>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="scroll-mt-20 mx-auto max-w-3xl px-4 sm:px-6 py-24 sm:py-32">
+      <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight text-center text-balance">{t('landing.faq.title')}</h2>
+      <div class="mt-12 divide-y divide-slate-200 dark:divide-slate-800 border-y border-slate-200 dark:border-slate-800">
+        {#each faqs as f (f.q)}
+          <details class="group py-5">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-6 font-medium [&::-webkit-details-marker]:hidden">
+              {f.q}
+              <i class="ph ph-plus shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-45"></i>
+            </summary>
+            <p class="mt-3 pr-10 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{f.a}</p>
+          </details>
         {/each}
       </div>
     </section>
@@ -195,21 +324,46 @@
   </main>
 
   <footer class="border-t border-slate-100 dark:border-slate-900">
-    <div class="mx-auto max-w-6xl px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-400">
-      <p class="flex items-center gap-2">
-        <i class="ph ph-wallet text-blue-600"></i>
-        © {year} SpendsWise
-      </p>
-      <label class="sm:hidden flex items-center gap-1.5">
-        <i class="ph ph-translate"></i>
-        <select value={locale} aria-label={t('common.language')}
-          onchange={(e) => setLocale((e.target as HTMLSelectElement).value as 'en' | 'es')}
-          class="bg-transparent text-sm focus:outline-none cursor-pointer">
-          {#each locales as l (l.code)}
-            <option value={l.code}>{l.label}</option>
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 py-12 grid gap-10 sm:grid-cols-[2fr_1fr_1fr]">
+      <div>
+        <p class="flex items-center gap-2 font-semibold tracking-tight">
+          <span class="grid place-items-center w-7 h-7 rounded-lg bg-blue-600 text-white"><i class="ph ph-wallet"></i></span>
+          SpendsWise
+        </p>
+        <p class="mt-3 max-w-xs text-sm text-slate-500 dark:text-slate-400">{t('landing.footer.tagline')}</p>
+        <label class="mt-5 inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+          <i class="ph ph-translate"></i>
+          <select value={locale} aria-label={t('common.language')}
+            onchange={(e) => setLocale((e.target as HTMLSelectElement).value as 'en' | 'es')}
+            class="bg-transparent text-sm focus:outline-none cursor-pointer">
+            {#each locales as l (l.code)}
+              <option value={l.code}>{l.label}</option>
+            {/each}
+          </select>
+        </label>
+      </div>
+      <div>
+        <p class="text-sm font-medium">{t('landing.footer.product')}</p>
+        <ul class="mt-3 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+          {#each navLinks as l (l.id)}
+            <li><a href="#{l.id}" onclick={(e) => jump(e, l.id)} class="hover:text-slate-900 dark:hover:text-white transition-colors">{l.label}</a></li>
           {/each}
-        </select>
-      </label>
+        </ul>
+      </div>
+      <div>
+        <p class="text-sm font-medium">{t('landing.footer.account')}</p>
+        <ul class="mt-3 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+          {#if isLoggedIn}
+            <li><a href={dashboardPath()} onclick={(e) => go(e, dashboardPath())} class="hover:text-slate-900 dark:hover:text-white transition-colors">{t('landing.openDashboard')}</a></li>
+          {:else}
+            <li><a href="/login" onclick={(e) => go(e, '/login')} class="hover:text-slate-900 dark:hover:text-white transition-colors">{t('login.signIn')}</a></li>
+            <li><a href="/login" onclick={(e) => go(e, '/login')} class="hover:text-slate-900 dark:hover:text-white transition-colors">{t('landing.getStarted')}</a></li>
+          {/if}
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-slate-100 dark:border-slate-900">
+      <p class="mx-auto max-w-6xl px-4 sm:px-6 py-6 text-xs text-slate-400">© {year} SpendsWise</p>
     </div>
   </footer>
 </div>
