@@ -1,10 +1,12 @@
 <script lang="ts">
   import { getIsLoggedIn, navigate, dashboardPath } from '../lib/state.svelte.js';
-  import { formatMoney } from '../lib/currency.js';
   import { t, locales, getLocale, setLocale } from '../lib/i18n.svelte.js';
-  import HubPreview from '../components/landing/HubPreview.svelte';
   import ChatPreview from '../components/landing/ChatPreview.svelte';
-  import SummaryPreview from '../components/landing/SummaryPreview.svelte';
+  // Real screenshots of the app, captured from a demo account with fictional data.
+  import expenseOverviewImg from '../assets/landing/expense-overview.webp';
+  import expenseMobileImg from '../assets/landing/expense-mobile.webp';
+  import hubMembersImg from '../assets/landing/hub-members.webp';
+  import weeklySummaryImg from '../assets/landing/weekly-summary.webp';
 
   let isLoggedIn = $derived(getIsLoggedIn());
   let locale = $derived(getLocale());
@@ -23,17 +25,19 @@
     { n: '03', title: t('landing.how.3.title'), body: t('landing.how.3.body') },
   ]);
 
-  // Each spotlight pairs copy with a markup-drawn preview, alternating sides.
+  // Each spotlight pairs copy with a screenshot (or, for the AI, an illustrative
+  // conversation), alternating sides. Image sizes are the 2x captures' CSS sizes.
   let spotlights = $derived([
-    { key: 'hubs', icon: 'ph-users-three', preview: HubPreview },
-    { key: 'ai', icon: 'ph-sparkle', preview: ChatPreview },
-    { key: 'summaries', icon: 'ph-newspaper', preview: SummaryPreview },
+    { key: 'hubs', icon: 'ph-users-three', image: { src: hubMembersImg, width: 560, height: 224 } },
+    { key: 'ai', icon: 'ph-sparkle', image: null },
+    { key: 'summaries', icon: 'ph-newspaper', image: { src: weeklySummaryImg, width: 560, height: 290 } },
   ].map(sp => ({
     ...sp,
     eyebrow: t(`landing.spot.${sp.key}.eyebrow`),
     title: t(`landing.spot.${sp.key}.title`),
     body: t(`landing.spot.${sp.key}.body`),
     points: [1, 2, 3].map(i => t(`landing.spot.${sp.key}.point${i}`)),
+    alt: t(`landing.spot.${sp.key}.alt`),
   })));
 
   let essentials = $derived([
@@ -53,13 +57,6 @@
   ]);
 
   let faqs = $derived([1, 2, 3, 4, 5, 6].map(i => ({ q: t(`landing.faq.${i}.q`), a: t(`landing.faq.${i}.a`) })));
-
-  // Illustrative entries for the product preview card.
-  let previewRows = $derived([
-    { icon: 'ph-briefcase', label: t('landing.preview.salary'), meta: t('landing.preview.recurring'), amount: 4200, income: true },
-    { icon: 'ph-shopping-cart', label: t('landing.preview.groceries'), meta: t('landing.preview.sharedBy', { name: 'Sam' }), amount: 86.4, income: false },
-    { icon: 'ph-house', label: t('landing.preview.rent'), meta: t('landing.preview.recurring'), amount: 1350, income: false },
-  ]);
 
   // Real links so they work with middle-click / copy-link, routed in-app.
   function go(e: MouseEvent, path: string) {
@@ -156,61 +153,21 @@
         {/if}
       </div>
 
-      <!-- Product preview, drawn in markup rather than a screenshot -->
-      <div class="mx-auto mt-16 sm:mt-20 max-w-4xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-2 shadow-2xl shadow-slate-900/5 text-left" aria-hidden="true">
-        <div class="rounded-xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 p-5 sm:p-8">
-          <div class="flex items-center justify-between">
-            <p class="text-sm font-medium">{t('landing.preview.thisMonth')}</p>
-            <div class="flex gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-slate-800"></span>
-              <span class="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-slate-800"></span>
-              <span class="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-slate-800"></span>
-            </div>
+      <!-- Real screenshots: desktop Expense overview with the mobile view overlapping -->
+      <div class="relative mx-auto mt-16 sm:mt-20 max-w-5xl">
+        <figure class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 p-1.5 sm:p-2 shadow-2xl shadow-slate-900/10">
+          <div class="flex items-center gap-1.5 px-2 pb-1.5 sm:pb-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
           </div>
-
-          <div class="mt-6 grid grid-cols-3 gap-3 sm:gap-6">
-            <div>
-              <p class="text-[11px] sm:text-xs text-slate-400">{t('landing.preview.income')}</p>
-              <p class="mt-1 text-base sm:text-2xl font-semibold tracking-tight text-emerald-600">{formatMoney(4200, 'USD')}</p>
-            </div>
-            <div>
-              <p class="text-[11px] sm:text-xs text-slate-400">{t('landing.preview.expenses')}</p>
-              <p class="mt-1 text-base sm:text-2xl font-semibold tracking-tight text-rose-600">{formatMoney(2318.75, 'USD')}</p>
-            </div>
-            <div>
-              <p class="text-[11px] sm:text-xs text-slate-400">{t('landing.preview.balance')}</p>
-              <p class="mt-1 text-base sm:text-2xl font-semibold tracking-tight">{formatMoney(1881.25, 'USD')}</p>
-            </div>
-          </div>
-
-          <svg viewBox="0 0 400 80" preserveAspectRatio="none" class="mt-6 w-full h-16 sm:h-20">
-            <defs>
-              <linearGradient id="landing-area" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stop-color="#2563eb" stop-opacity="0.18" />
-                <stop offset="100%" stop-color="#2563eb" stop-opacity="0" />
-              </linearGradient>
-            </defs>
-            <path d="M0 62 C 30 58, 50 40, 80 44 S 130 66, 160 52 S 210 18, 250 28 S 310 54, 340 36 S 380 14, 400 18 L 400 80 L 0 80 Z" fill="url(#landing-area)" />
-            <path d="M0 62 C 30 58, 50 40, 80 44 S 130 66, 160 52 S 210 18, 250 28 S 310 54, 340 36 S 380 14, 400 18" fill="none" stroke="#2563eb" stroke-width="2" vector-effect="non-scaling-stroke" />
-          </svg>
-
-          <ul class="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
-            {#each previewRows as row (row.label)}
-              <li class="flex items-center gap-3 py-3">
-                <span class="grid place-items-center w-9 h-9 rounded-full {row.income ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400'}">
-                  <i class="ph {row.icon}"></i>
-                </span>
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm font-medium truncate">{row.label}</p>
-                  <p class="text-xs text-slate-400 truncate">{row.meta}</p>
-                </div>
-                <p class="text-sm font-medium tabular-nums {row.income ? 'text-emerald-600' : ''}">
-                  {row.income ? '+' : '−'}{formatMoney(row.amount, 'USD')}
-                </p>
-              </li>
-            {/each}
-          </ul>
-        </div>
+          <img src={expenseOverviewImg} width="1440" height="900" alt={t('landing.img.desktop')}
+            fetchpriority="high" decoding="async"
+            class="block w-full h-auto rounded-xl border border-slate-200/70 dark:border-slate-800" />
+        </figure>
+        <img src={expenseMobileImg} width="390" height="844" alt={t('landing.img.mobile')}
+          loading="lazy" decoding="async"
+          class="hidden md:block absolute -right-6 lg:-right-12 -bottom-10 w-44 lg:w-52 h-auto rounded-[1.75rem] border-[6px] border-slate-900 dark:border-slate-700 shadow-2xl shadow-slate-900/30" />
       </div>
     </section>
 
@@ -249,7 +206,13 @@
             </ul>
           </div>
           <div class="{i % 2 === 1 ? 'lg:order-1' : ''} rounded-3xl bg-slate-50 dark:bg-slate-900/60 p-4 sm:p-10">
-            <sp.preview />
+            {#if sp.image}
+              <img src={sp.image.src} width={sp.image.width} height={sp.image.height} alt={sp.alt}
+                loading="lazy" decoding="async"
+                class="block w-full max-w-xl mx-auto h-auto rounded-2xl" />
+            {:else}
+              <ChatPreview />
+            {/if}
           </div>
         </div>
       {/each}
