@@ -44,7 +44,9 @@ describe("recurring transaction scheduler", () => {
   it("generates a due transaction and advances the next due date", async () => {
     const user = await createUser();
     const due = dueDate();
-    await ExpenseModel.create(recurringTemplate(user._id.toString()));
+    await ExpenseModel.create(
+      recurringTemplate(user._id.toString(), { date: due, recurrence: { frequency: "daily", nextDueDate: due, isActive: true } })
+    );
 
     await processRecurringTransactions();
 
