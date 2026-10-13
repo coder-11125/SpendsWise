@@ -212,7 +212,6 @@ export const en: Dict = {
   "summaries.vsPreviousWeek": "{pct}% vs previous week",
 
   // ---- Forms ----
-  "form.addIncome": "Add Income",
   "form.space": "Space",
   "form.amount": "Amount",
   "form.categoryType": "Type",
@@ -225,7 +224,6 @@ export const en: Dict = {
   "form.frequency": "Frequency",
   "form.endDateOptional": "End Date (optional)",
   "form.noEndDate": "No end date",
-  "form.add": "Add {type}",
   "form.quickAdd": "Quick Add",
   "form.importing": "Importing...",
   "form.importCsv": "Import CSV",
