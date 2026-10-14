@@ -1,14 +1,22 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { getLatestSummary, hasUnseenSummary, markSummarySeen, setEmail, setLatestSummary } from "./state.svelte.js";
 import { formatWeekRange } from "./utils.js";
-import type { WeeklySummary } from "../types.js";
+import type { LatestSummary } from "../types.js";
 
-function summary(weekStartDate: string, weekEndDate: string): WeeklySummary {
+function summary(weekStartDate: string, weekEndDate: string, spaceId: string | null = null): LatestSummary {
   return {
-    weekStartDate,
-    weekEndDate,
-    narrative: "",
-    stats: { totalIncome: 0, totalExpense: 0, net: 0, transactionCount: 3, byCategory: [], previousWeekExpense: null },
+    spaceId,
+    ledgerName: spaceId ? "Home" : null,
+    summary: {
+      weekStartDate,
+      weekEndDate,
+      narrative: "",
+      currency: "USD",
+      lang: "en",
+      aiGenerated: true,
+      converted: true,
+      stats: { totalIncome: 0, totalExpense: 0, net: 0, transactionCount: 3, byCategory: [], previousWeekExpense: null },
+    },
   };
 }
 
@@ -43,6 +51,13 @@ describe("weekly summary notifications", () => {
     markSummarySeen();
     setLatestSummary(summary("2026-10-12", "2026-10-18"));
     expect(hasUnseenSummary()).toBe(true);
+  });
+
+  it("treats a week as seen whichever ledger it was viewed in", () => {
+    setLatestSummary(summary("2026-10-05", "2026-10-11", "hub-1"));
+    markSummarySeen();
+    setLatestSummary(summary("2026-10-05", "2026-10-11"));
+    expect(hasUnseenSummary()).toBe(false);
   });
 
   it("tracks seen state per account on the same device", () => {

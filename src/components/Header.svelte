@@ -31,9 +31,12 @@
     notificationsOpen = false;
   });
 
-  function openSummary() {
+  async function openSummary() {
     notificationsOpen = false;
+    const target = latestSummary;
     markSummarySeen();
+    // Summaries shows the active ledger, so switch to the one the recap is for.
+    if (target && target.spaceId !== currentSpaceId) await switchSpace(target.spaceId);
     navigate(dashboardPath('summaries'));
   }
 
@@ -151,7 +154,10 @@
                       <i class="ph ph-newspaper text-blue-600 mt-0.5"></i>
                       <div class="min-w-0">
                         <p class="text-sm font-medium text-slate-800 dark:text-slate-100">{t('header.summaryReady')}</p>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">{t('header.summaryWeek', { range: formatWeekRange(latestSummary.weekStartDate, latestSummary.weekEndDate), count: latestSummary.stats.transactionCount })}</p>
+                        {#if latestSummary.ledgerName}
+                          <p class="text-xs font-medium text-blue-700 dark:text-blue-300 truncate">{latestSummary.ledgerName}</p>
+                        {/if}
+                        <p class="text-xs text-slate-500 dark:text-slate-400">{t('header.summaryWeek', { range: formatWeekRange(latestSummary.summary.weekStartDate, latestSummary.summary.weekEndDate), count: latestSummary.summary.stats.transactionCount })}</p>
                       </div>
                     </div>
                     <button onclick={openSummary} class="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors">{t('header.viewSummary')}</button>

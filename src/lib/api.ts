@@ -15,7 +15,7 @@ import {
   navigate,
 } from './state.svelte.js';
 import { getLocale, localizeServerError, t } from './i18n.svelte.js';
-import type { Expense, Profile, WeeklySummary, Space } from '../types.js';
+import type { Expense, Profile, WeeklySummary, LatestSummary, Space } from '../types.js';
 
 // Prevent an older polling/Pusher response from restoring transactions after
 // a successful delete.
@@ -203,14 +203,14 @@ export async function checkSession(): Promise<boolean> {
       initPusher(data.id);
       startPolling();
       loadExpenses();
-      fetchSpaces();
+      const spacesReady = fetchSpaces();
       fetchPendingInvites();
-      // Summaries are keyed to the user's timezone, so sync it first.
-      if (data.timezone !== Intl.DateTimeFormat().resolvedOptions().timeZone) {
-        syncTimezone().then(refreshLatestSummary);
-      } else {
-        refreshLatestSummary();
-      }
+      // Summaries cover every Hub and are keyed to the user's timezone, so
+      // wait for both before checking for a new one.
+      const timezoneReady = data.timezone !== Intl.DateTimeFormat().resolvedOptions().timeZone
+        ? syncTimezone()
+        : Promise.resolve();
+      Promise.all([spacesReady, timezoneReady]).then(refreshLatestSummary);
       return true;
     }
   } catch {}
@@ -229,10 +229,10 @@ export async function showApp(email: string, userId?: string): Promise<void> {
     initPusher(userId);
   }
   loadExpenses();
-  fetchSpaces();
+  const spacesReady = fetchSpaces();
   fetchPendingInvites();
   startPolling();
-  syncTimezone().then(refreshLatestSummary);
+  Promise.all([spacesReady, syncTimezone()]).then(refreshLatestSummary);
 }
 
 export async function saveTransaction({ type, amount, category, date, name = '', note = '', recurrence }: Partial<Expense>): Promise<Expense | null> {
@@ -532,21 +532,30 @@ export async function fetchAiQuota(): Promise<{ weeklyRemaining: number }> {
   return handleJsonResponse(res, 'Failed to fetch AI quota');
 }
 
-export async function fetchSummaries(): Promise<{ summaries: WeeklySummary[] }> {
-  const res = await apiFetch(`/summaries?lang=${getLocale()}`);
-  const data = await handleJsonResponse(res, 'Failed to fetch summaries');
-  setLatestSummary(data.summaries?.[0] ?? null);
-  return data;
+// Summaries for one ledger (personal by default, or a Hub), in the user's
+// language and display currency. The server (re)generates any missing or
+// stale weeks before answering.
+export async function fetchSummaries(spaceId: string | null = null): Promise<{ summaries: WeeklySummary[] }> {
+  const params = new URLSearchParams({ lang: getLocale(), currency: getCurrentCurrency() });
+  if (spaceId) params.set('spaceId', spaceId);
+  const res = await apiFetch(`/summaries?${params}`);
+  return handleJsonResponse(res, 'Failed to fetch summaries');
 }
 
-// Fetching summaries also lazily generates last week's, so this both creates
-// and surfaces a new summary for the Header notifications. Best-effort.
+// Checks the personal ledger and every Hub (which also generates any new
+// summaries) and surfaces the newest one in the Header notifications.
 export async function refreshLatestSummary(): Promise<void> {
-  try {
-    await fetchSummaries();
-  } catch {
-    // Notifications just won't show a summary this time.
-  }
+  const ledgers = [{ id: null as string | null, name: null as string | null }, ...getSpaces().map((s) => ({ id: s.id, name: s.name }))];
+  const results = await Promise.allSettled(ledgers.map((l) => fetchSummaries(l.id)));
+  let latest: LatestSummary | null = null;
+  results.forEach((r, i) => {
+    if (r.status !== 'fulfilled') return;
+    const newest = r.value.summaries?.find((s) => !s.legacy) ?? r.value.summaries?.[0];
+    if (newest && (!latest || newest.weekStartDate > latest.summary.weekStartDate)) {
+      latest = { summary: newest, spaceId: ledgers[i].id, ledgerName: ledgers[i].name };
+    }
+  });
+  setLatestSummary(latest);
 }
 
 export async function syncTimezone(): Promise<void> {

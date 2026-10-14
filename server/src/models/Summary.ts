@@ -1,5 +1,9 @@
 import { Schema, model, Types, InferSchemaType } from "mongoose";
 
+// LEGACY: summaries generated before per-ledger/language/currency caching.
+// Read-only now — routes/summaries.ts lists these only for personal-ledger
+// weeks older than the regeneration window. New summaries go to WeeklySummary.
+
 const categoryBreakdownSchema = new Schema(
   {
     category: { type: String, required: true },

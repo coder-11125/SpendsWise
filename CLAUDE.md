@@ -101,6 +101,7 @@ server/src/
 │   ├── pusher.ts               # Pusher real-time notifications (per-user `user-{id}` and per-Hub `space-{id}` channels)
 │   ├── recurringScheduler.ts   # Atomic recurring generator: global scan (cron), per-user/per-Hub lazy catch-up, and the 60s interval used only by the standalone server
 │   ├── spaceDb.ts              # Resolves each Hub's own MongoDB database/model via mongoose useDb()
+│   ├── currencyRates.ts        # fetchCurrencyRates(base) — exchangerate-api fetch with 1-hour cache; `live: false` means 1:1 placeholders (no CURRENCY_API_KEY / API failure). Shared by routes/currency.ts and summaries
 │   └── expenseHandlers.ts      # Shared CRUD route logic reused by both expenses.ts and spaceExpenses.ts
 ├── middleware/
 │   ├── auth.ts                 # JWT auth middleware (req.userId)
@@ -114,7 +115,8 @@ server/src/
 │   ├── User.ts                 # Mongoose schema — email, passwordHash, timezone, aiUsage, tokenVersion
 │   ├── Space.ts                # Hub metadata — name, ownerId, members[] (userId, nickname, role, status)
 │   ├── SpaceExpense.ts         # Schema compiled per-Hub against that Hub's own database (authorUserId instead of userId)
-│   └── Summary.ts              # Weekly AI-narrated summary, unique per (userId, weekStartDate)
+│   ├── WeeklySummary.ts        # Cached weekly recap per (scopeKey, lang, currency, weekStartDate) in the `weekly_summaries` collection
+│   └── Summary.ts              # LEGACY read-only recaps (pre-cache); listed only for personal weeks older than the regeneration window
 ├── routes/
 │   ├── auth.ts                 # POST /login, /register, /logout, GET /me, /csrf, PUT /password, /timezone, Google OAuth
 │   ├── expenses.ts             # CRUD /expenses, GET /recurring, PUT /:id/recurring, POST /bulk, DELETE all (personal ledger)
@@ -123,7 +125,7 @@ server/src/
 │   ├── spaceExpenses.ts        # Same CRUD/recurring shape as expenses.ts, mounted at /api/spaces/:spaceId/expenses
 │   ├── ai.ts                   # POST /chat, GET /quota
 │   ├── currency.ts             # GET /rates, GET /convert (proxies exchangerate-api)
-│   └── summaries.ts            # GET / — lazily generates + lists weekly AI summaries
+│   └── summaries.ts            # GET /?lang&currency&spaceId — keeps the last 12 completed weeks of a ledger summarized (backfill, regeneration on data change, AI retry), then lists its history
 └── types/
     ├── express.d.ts            # Express Request augmentation (userId)
     └── pusher.d.ts              # Pusher type declarations
@@ -194,18 +196,26 @@ server/src/
 #### SpaceExpense (Mongoose, one schema compiled per Hub's own `space_<id>` database)
 Same shape as `Expense`, but `authorUserId` (the contributing member) in place of `userId`/`familyMember`. Resolved via `getSpaceExpenseModel(spaceId)` in `server/src/lib/spaceDb.ts`, which calls `mongoose.connection.useDb('space_<id>', { useCache: true })` — a genuinely separate MongoDB database sharing the same underlying connection pool. Deleting a Hub calls `.dropDatabase()` on that connection.
 
-#### Summary (Mongoose, main database — one per user per week)
+#### WeeklySummary (Mongoose, main database — `weekly_summaries`, one per ledger/week/language/currency)
 ```
 {
-  userId: ObjectId,
-  weekStartDate: String,   // Monday, YYYY-MM-DD; unique per (userId, weekStartDate)
+  scopeKey: String,          // "user:<userId>" (personal) or "space:<spaceId>" (Hub, shared by its members)
+  weekStartDate: String,     // Monday, YYYY-MM-DD; unique per (scopeKey, lang, currency, weekStartDate)
   weekEndDate: String,
-  timezone: String,
-  narrative: String,       // Groq-generated recap, or a numeric fallback if Groq is unavailable/rate-limited
-  stats: { totalIncome, totalExpense, net, transactionCount, byCategory, previousWeekExpense },
+  lang: "en" | "es",
+  currency: String,          // every amount converted to this before totaling
+  timezone: String,          // requesting user's timezone at generation
+  narrative: String,         // Groq recap, or a plain-numbers fallback
+  aiGenerated: Boolean,      // false = fallback; the AI is retried after AI_RETRY_COOLDOWN_MS (6h)
+  converted: Boolean,        // false = some amounts left unconverted (no live rates)
+  sourceFingerprint: String, // the week's + previous week's entries (count/sum/latest updatedAt), conversion flag, member names
+  stats: { totalIncome, totalExpense, net, transactionCount, byCategory, byMember (Hubs), previousWeekExpense },
   timestamps: true
 }
 ```
+- `GET /api/summaries` walks the last `SUMMARY_WINDOW_WEEKS` (12) completed weeks of the ledger: creates missing recaps, regenerates ones whose fingerprint changed, deletes recaps for weeks that are now empty, and retries AI for fallbacks past the cooldown. At most `MAX_AI_GENERATIONS_PER_REQUEST` (2) Groq calls per request; the rest get the fallback and are upgraded later. Never touches the interactive AI quota.
+- Reasoning models (`gpt-oss`, `qwen3`) are called with `reasoning_effort: "low"` and `max_tokens: 1500`; an empty completion logs a warning and falls back.
+- Legacy `Summary` documents (`summaries` collection, pre-cache) are read-only and returned with `legacy: true` only for personal weeks older than the window.
 
 ### State model
 `src/lib/state.svelte.ts` owns all reactive state using Svelte 5 runes. Views and components import getter/setter functions to read/write state. The `expense[]` array is the single source of truth **for whatever context is currently active** (personal or a specific Hub). Budget goals persist to `localStorage` (`sw_budget_goals`). Currency preferences persist to `localStorage` too. AI chat history is held in memory per session.
@@ -217,7 +227,7 @@ Key state:
 - `_spaces` — Hubs the user is an active member of
 - `_currentSpaceId` — the active Hub, or `null` for Personal; switching calls `switchSpace()` in `api.ts`, which re-fetches `_expense` and re-subscribes the Hub's Pusher channel
 - `_pendingInvites` — Hubs where the user has a pending invite, shown in the Header Notifications dropdown and refreshed through Pusher user-channel events
-- `_latestSummary` — newest weekly summary, fetched after login (`refreshLatestSummary()` in `api.ts`, which also lazily generates it) and on every Summaries load; it appears in Header Notifications until seen. `hasUnseenSummary()` / `markSummarySeen()` track the last seen week per account in `localStorage` (`sw_seen_summary_week:<email>`); opening Summaries marks it seen
+- `_latestSummary` — newest weekly summary across the personal ledger and every Hub (`LatestSummary`: summary + spaceId + ledgerName), fetched after login once spaces and timezone are synced (`refreshLatestSummary()` in `api.ts`, which also generates new ones); it appears in Header Notifications until seen; View summary switches to that ledger first. `hasUnseenSummary()` / `markSummarySeen()` track the last seen week per account in `localStorage` (`sw_seen_summary_week:<email>`); opening Summaries marks it seen
 - `_aiChatHistory` — AI conversation messages (in-memory only)
 - `_currentView` — current route view (landing | login | expense | income | spaces | summaries | account | ai)
 - `_viewMode` — sub-mode of the Expense and Income views (overview | list), driven by the URL's mode segment (`/dashboard/expense` vs `/dashboard/expense/list`, `/dashboard/income` vs `/dashboard/income/list`); read with `getViewMode()`
@@ -269,7 +279,7 @@ Transaction deletion only updates local state after the server confirms success.
 | GET/POST/PUT/DELETE | `/api/spaces/:spaceId/expenses/...` | Same CRUD/recurring/bulk shape as `/api/expenses`, scoped to that Hub's own database |
 | GET | `/api/currency/rates?base=` | Get currency conversion rates |
 | GET | `/api/currency/convert` | Convert a single amount between currencies |
-| GET | `/api/summaries` | Weekly AI-narrated summaries (generates the latest completed week's on first request) |
+| GET | `/api/summaries` | Weekly summaries for a ledger: `?lang=en\|es&currency=XXX[&spaceId=<hub>]` (active members only). Backfills/refreshes the last 12 completed weeks first |
 | GET | `/api/cron/recurring` | Global recurring scan — requires `Authorization: Bearer <CRON_SECRET>`; invoked by the GitHub Actions `Recurring Cron` workflow |
 | GET | `/api/ai/quota` | Get AI usage quota (weekly remaining) |
 | POST | `/api/ai/chat` | AI chat assistant (can add/edit/delete transactions via tool calls) |
@@ -281,7 +291,7 @@ Transaction deletion only updates local state after the server confirms success.
 - **Landing page**: `/` is a public, minimal marketing page (`LandingView`); the app itself starts at `/dashboard/expense`.
 - **Expense home**: `ExpenseView` is the app's home page. Its top row holds a mode dropdown (Overview/List); there is no add-expense form or button on the page itself — adding a transaction goes through the Header's "Add Entry" button on desktop or the bottom nav's Quick Add on mobile, both opening the same Quick Add modal. Overview shows summary cards, budget, recurring expenses, pie/trend charts, per-member breakdown, and a recent-10 glance list. List drops all of that down to just a single consolidated Filters dropdown (search, sort, date/amount range, category, contributor, recurring-only) plus the matching expense entries. URL reflects the mode: `/dashboard/expense` (overview) vs `/dashboard/expense/list`. Income never appears here; it is viewed in IncomeView (an Overview/All Incomes page laid out like this one: summary cards, recurring income, charts, member breakdown, recent-10, and a filterable list at `/dashboard/income/list`) and, like expenses, added only via Quick Add (Header "Add Entry" on desktop, bottom nav on mobile)
 - **AI assistant**: Chat with your financial data (can act on it via tool calls)
-- **Weekly summaries**: Lazily-generated, cached, AI-narrated recap of income/expenses/net/top categories per week. A new one is surfaced in Header Notifications after login; on mobile, Summaries is reached from that notification or the Account page link
+- **Weekly summaries**: Cached, AI-narrated recap of income/expenses/net/top categories per week, for the personal ledger and each Hub (with a per-member breakdown). The last 12 completed weeks are backfilled and kept fresh as entries change, totals are converted to the display currency, and the Summaries view follows the active ledger. A new one is surfaced in Header Notifications after login; on mobile, Summaries is reached from that notification or the Account page link
 - **Budget goals**: Per-category spending targets with progress tracking
 - **Multi-currency**: Live exchange rates, per-transaction currency, unified display currency
 - **Import/Export**: CSV import (via MobileQuickAdd — opened from the mobile bottom nav or the Header's "Add Entry" button on desktop), CSV export in AccountView.

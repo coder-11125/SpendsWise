@@ -89,16 +89,35 @@ export interface WeeklySummaryCategory {
   count: number;
 }
 
+export interface WeeklySummaryMember {
+  name: string;
+  income: number;
+  expense: number;
+}
+
 export interface WeeklySummary {
   weekStartDate: string;
   weekEndDate: string;
   narrative: string;
+  currency: string | null;     // amounts' currency; null for legacy recaps
+  lang: string | null;
+  aiGenerated: boolean;        // false = plain-numbers narrative, AI write-up retried later
+  converted: boolean;          // false = some amounts couldn't be converted (no live rates)
+  legacy?: boolean;            // recap from before per-ledger caching
   stats: {
     totalIncome: number;
     totalExpense: number;
     net: number;
     transactionCount: number;
     byCategory: WeeklySummaryCategory[];
+    byMember?: WeeklySummaryMember[];  // Hub ledgers only
     previousWeekExpense: number | null;
   };
+}
+
+/** The newest summary across the user's ledgers, surfaced in Header notifications. */
+export interface LatestSummary {
+  summary: WeeklySummary;
+  spaceId: string | null;      // null = personal ledger
+  ledgerName: string | null;   // Hub name, null for personal
 }

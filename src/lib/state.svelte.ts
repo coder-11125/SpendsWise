@@ -1,5 +1,5 @@
 import { API_BASE, POLL_INTERVAL_MS, defaultExpenseCategories, defaultIncomeCategories } from './constants.js';
-import type { Expense, CurrencyRates, CategoryData, Space, WeeklySummary } from '../types.js';
+import type { Expense, CurrencyRates, CategoryData, Space, LatestSummary } from '../types.js';
 
 let _csrfToken = $state<string | null>(null);
 let _isLoggedIn = $state<boolean>(false);
@@ -199,24 +199,24 @@ export function setSpaces(v: Space[]) { _spaces = Array.isArray(v) ? [...v] : []
 export function getPendingInvites() { return _pendingInvites; }
 export function setPendingInvites(v: Space[]) { _pendingInvites = Array.isArray(v) ? [...v] : []; }
 
-// Newest weekly summary, surfaced in the Header notifications until viewed.
-// "Seen" is remembered per account on this device.
-let _latestSummary = $state<WeeklySummary | null>(null);
+// Newest weekly summary across the user's ledgers, surfaced in the Header
+// notifications until viewed. "Seen" is remembered per account on this device.
+let _latestSummary = $state<LatestSummary | null>(null);
 let _seenSummaryWeek = $state<string>('');
 
 function seenSummaryKey() { return `sw_seen_summary_week:${_email}`; }
 
 export function getLatestSummary() { return _latestSummary; }
-export function setLatestSummary(v: WeeklySummary | null) {
+export function setLatestSummary(v: LatestSummary | null) {
   _latestSummary = v;
   try { _seenSummaryWeek = localStorage.getItem(seenSummaryKey()) || ''; } catch { _seenSummaryWeek = ''; }
 }
 export function hasUnseenSummary() {
-  return !!_latestSummary && _latestSummary.weekStartDate > _seenSummaryWeek;
+  return !!_latestSummary && _latestSummary.summary.weekStartDate > _seenSummaryWeek;
 }
 export function markSummarySeen() {
   if (!_latestSummary) return;
-  _seenSummaryWeek = _latestSummary.weekStartDate;
+  _seenSummaryWeek = _latestSummary.summary.weekStartDate;
   try { localStorage.setItem(seenSummaryKey(), _seenSummaryWeek); } catch { /* storage unavailable */ }
 }
 
